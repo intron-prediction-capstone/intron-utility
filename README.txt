@@ -17,4 +17,4 @@ OUTPUT
   normalized like so:
     - Values >= 0 are scaled to fall within the 50-100 range
     - Values < 0 are scaled to fall within the 0-50 range, where 0 is the
-      lowest (the "most negative" number)
+      lowest ("most negative") number
