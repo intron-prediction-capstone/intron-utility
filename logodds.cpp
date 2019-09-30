@@ -40,6 +40,42 @@ static inline double score(double f) {
     return log2(tmp);
 }
 
+static Matrix normalize(const Matrix& m) {
+    // find max and min values
+    double min = 0.0,
+           max = 0.0;
+    for (auto& pair : m) {
+        for (double d : pair.second) {
+            if (d < min) min = d;
+            if (d > max) max = d;
+        }
+    }
+    
+    // normalize
+    Matrix ret = m;
+    for (auto& pair : ret) {
+        for (double& d : pair.second) {
+            if (DBL_EQ(d, 0.0)) {
+                d = 50.0;
+            } else if (d > 0.0) {
+                // greater than or equal to 0 gets rescaled
+                // to fit within 50-100
+                // divide the value by the max and then multiply by 50, then
+                // add 50 so that max is 100
+                d = (((d * 100.0) / (max * 100.0)) * 50.0) + 50.0;
+            } else {
+                // negative values go from 0-50
+                // take the value, divide by the min, then multiply by 50
+                // subtract from 50 to get the opposite (we want the biggest value
+                // to be at 0, because this is negative numbers)
+                d = 50.0 - (((d * 100.0) / (min * 100.0)) * 50.0);
+            }
+        }
+    }
+
+    return ret;
+}
+
 int main(void) {
     std::ifstream infile(INPUT_FILE);
     if (!infile) {
@@ -90,6 +126,10 @@ int main(void) {
     std::cout << "\nPWM Scores:\n" << std::fixed;
     std::cout.precision(3);
     print_matrix(pwm);
+
+    std::cout << "\nNormalized PWM Scores:\n";
+    std::cout.precision(1);
+    print_matrix(normalize(pwm));
 
     return 0;
 }
