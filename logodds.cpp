@@ -17,8 +17,6 @@
 #define BACKGROUND 0.25
 #define ADJUSTMENT 0.00001
 
-#define INPUT_FILE "input.tsv"
-
 using Matrix = std::map<char, std::vector<double>>;
 
 static Matrix frequencies;
@@ -77,10 +75,13 @@ static Matrix normalize(const Matrix& m) {
 }
 
 int main(int argc, char** argv) {
-    std::string inputfilename = INPUT_FILE;
+    std::string inputfilename;
     
     if (argc > 1) {
         inputfilename = argv[1];
+    } else {
+        std::cerr << "No input file specified.\n";
+        return 1;
     }
 
     std::ifstream infile(inputfilename);
