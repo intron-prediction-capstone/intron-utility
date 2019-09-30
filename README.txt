@@ -6,9 +6,8 @@ DESCRIPTION
 
 INPUT
 
-  The input for now is one of the .tsv files found in the inputs directory.
-  You can specify the file you want as the first command-line argument, or omit
-  it to use whichever it was compiled to use.
+  You must specify the file you want as the first command-line argument. Example
+  files can be found in the inputs directory.
 
 OUTPUT
 
