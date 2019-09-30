@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <map>
 
 #define EPSILON 0.00000001111111111111
@@ -38,29 +39,46 @@ static inline double score(double f) {
 int main(void) {
     std::ifstream infile(INPUT_FILE);
     if (!infile) {
-        std::cout << "Error reading input file!\n";
+        std::cerr << "Error reading input file!\n";
         return 1;
     }
 
     char nt;
-    std::vector<double> freq(5, 0.0);
-    for (int i = 0; i < 4; i++) {
-        infile >> nt;
-        for (int j = 0; j < 5; j++) {
-            infile >> freq[j];
+    std::vector<double> freq;
+    std::stringstream ss;
+    std::string line;
+    double tmp;
+    while (std::getline(infile, line)) {
+        ss = std::stringstream(line);
+        ss >> nt;
+        while (ss) {
+            ss >> tmp;
+            if (ss) {
+                freq.push_back(tmp);
+            }
         }
         frequencies[nt] = freq;
+        freq.clear();
     }
-
+    
     infile.close();
+
+    // confirm that all lines are the same length
+    std::size_t freq_count = frequencies['A'].size();
+    for (auto& pair : frequencies) {
+        if (pair.second.size() != freq_count) {
+            std::cerr << "Error: not all lines are the same length!\n";
+            return 1;
+        }
+    }
 
     std::cout << "Input Matrix:\n";
     print_matrix(frequencies);
 
     std::vector<double> scores;
     for (auto& pair : frequencies) {
-        pwm[pair.first] = std::vector<double>(5, 0.0);
-        for (int i = 0; i < 5; i++) {
+        pwm[pair.first] = std::vector<double>(freq_count, 0.0);
+        for (std::size_t i = 0; i < freq_count; i++) {
             pwm[pair.first][i] = score(pair.second[i]);
         }
     }
