@@ -7,7 +7,11 @@
 #include <map>
 
 #define EPSILON 0.00000001111111111111
-#define DBL_EQ(a,b) ((a <= b + EPSILON) && (a >= b - EPSILON))
+#define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
+
+// takes char 'n' and makes sure that it's a capital letter
+// this means we can make 'a' -> 'A' and so on to keep things consistent
+#define CAP_NT(n) ((n)>='a'&&(n)<='z'?(n)+('A'-'a'):(n))
 
 // background frequency
 #define BACKGROUND 0.25
@@ -57,7 +61,7 @@ int main(void) {
                 freq.push_back(tmp);
             }
         }
-        frequencies[nt] = freq;
+        frequencies[CAP_NT(nt)] = freq;
         freq.clear();
     }
     
