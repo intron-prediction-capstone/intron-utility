@@ -76,10 +76,16 @@ static Matrix normalize(const Matrix& m) {
     return ret;
 }
 
-int main(void) {
-    std::ifstream infile(INPUT_FILE);
+int main(int argc, char** argv) {
+    std::string inputfilename = INPUT_FILE;
+    
+    if (argc > 1) {
+        inputfilename = argv[1];
+    }
+
+    std::ifstream infile(inputfilename);
     if (!infile) {
-        std::cerr << "Error reading input file!\n";
+        std::cerr << "Error opening file: " << inputfilename << '\n';
         return 1;
     }
 

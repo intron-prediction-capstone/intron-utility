@@ -6,10 +6,15 @@ DESCRIPTION
 
 INPUT
 
-  The input for now is the input.matrix file, which contains the frequencies of
-  each nucleotide at a given position (1-5, in the example case).
+  The input for now is one of the .tsv files found in the inputs directory.
+  You can specify the file you want as the first command-line argument, or omit
+  it to use whichever it was compiled to use.
 
 OUTPUT
 
   The output from the program is a matrix like the input showing the PWM scores
-  of the given nucleotides at each position.
+  of the given nucleotides at each position. It will also print the PWM scores
+  normalized like so:
+    - Values >= 0 are scaled to fall within the 50-100 range
+    - Values < 0 are scaled to fall within the 0-50 range, where 0 is the
+      lowest (the "most negative" number)
