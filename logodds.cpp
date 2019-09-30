@@ -12,6 +12,8 @@
 #define BACKGROUND 0.25
 #define ADJUSTMENT 0.00001
 
+#define INPUT_FILE "input.tsv"
+
 using Matrix = std::map<char, std::vector<double>>;
 
 static Matrix frequencies;
@@ -34,7 +36,7 @@ static inline double score(double f) {
 }
 
 int main(void) {
-    std::ifstream infile("input.matrix");
+    std::ifstream infile(INPUT_FILE);
     if (!infile) {
         std::cout << "Error reading input file!\n";
         return 1;
