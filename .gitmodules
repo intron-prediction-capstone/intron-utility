@@ -1,0 +1,3 @@
+[submodule "gtf-cpp"]
+	path = gtf-cpp
+	url = https://github.com/willeccles/gtf-cpp
