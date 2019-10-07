@@ -7,19 +7,8 @@
 #include <map>
 #include <cstdio>
 
-/*
- * TODO get a PWM file as input
- * TODO get a GTF file as input
- * TODO get a genome file thing as input
- * TODO use the GTF file to find the introns in the genome file thing
- */
-
 const double EPSILON = 0.00000001111111111111;
 #define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
-
-// takes char 'n' and makes sure that it's a capital letter
-// this means we can make 'a' -> 'A' and so on to keep things consistent
-#define CAP_NT(n) ((n)>='a'&&(n)<='z'?(n)+('A'-'a'):(n))
 
 // background frequency
 const double BACKGROUND = 0.25;
