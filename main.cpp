@@ -134,23 +134,33 @@ int main(int argc, char** argv) {
     }
     
     pwmfile.close();
-
-    // TODO find a good way to open the fasta file
     
+    // open the GTF file
     GTFFile gtf;
     try {
         gtf.setfilename(gtffilename);
     } catch (const GTFError& e) {
         std::cerr << e.what() << '\n';
+        return 1;
     }
 
     gtf.load();
 
-    std::cout << gtf.count() << '\n';
-
     std::vector<GTFSequence> exons = gtf.filter([](auto seq) -> bool {
         return seq.feature == "exon";
     });
+
+    std::cout << "Out of "
+        << gtf.count()
+        << " sequences, found "
+        << exons.size()
+        << " exons.\n";
+
+    // time for the hard one: load the .fa file
+    // this is tricky, there are steps involved:
+    //  1. remove first line, which is an identifier of some sort
+    //  2. make sure we can get a string to data from it *without* newlines
+    //  3. make sure that we do not, under ANY circumstances, load the file into memory
 
     return 0;
 }
