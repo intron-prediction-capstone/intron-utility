@@ -6,7 +6,7 @@
 #include <sstream>
 #include <map>
 
-#define EPSILON 0.00000001111111111111
+const double EPSILON = 0.00000001111111111111;
 #define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
 
 // takes char 'n' and makes sure that it's a capital letter
@@ -14,8 +14,8 @@
 #define CAP_NT(n) ((n)>='a'&&(n)<='z'?(n)+('A'-'a'):(n))
 
 // background frequency
-#define BACKGROUND 0.25
-#define ADJUSTMENT 0.00001
+const double BACKGROUND = 0.25;
+const double ADJUSTMENT = 0.00001;
 
 using Matrix = std::map<char, std::vector<double>>;
 
