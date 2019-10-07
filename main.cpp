@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
         fastafilename = argv[3];
     }
 
-    if (argc < 4) {
+    if (argc < 3) {
         std::fprintf(stderr, "Usage: %s [pwm] [gtf] [fasta]\n", argv[0]);
         return 1;
     }
@@ -137,6 +137,15 @@ int main(int argc, char** argv) {
 
     // TODO open GTF file
     // TODO find a good way to open the fasta file
+    
+    GTFFile gtf;
+    try {
+        gtf.setfilename(gtffilename);
+    } catch (const GTFError& e) {
+        std::cerr << e.what() << '\n';
+    }
+
+    gtf.load();
 
     return 0;
 }
