@@ -152,9 +152,5 @@ int main(int argc, char** argv) {
         return seq.feature == "exon";
     });
 
-    for (auto& s : exons) {
-        std::cout << s.feature << '\n';
-    }
-
     return 0;
 }
