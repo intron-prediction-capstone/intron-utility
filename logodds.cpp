@@ -19,7 +19,7 @@
 
 using Matrix = std::map<char, std::vector<double>>;
 
-static Matrix frequencies;
+static Matrix frequencies{{'A',{}},{'C',{}},{'T',{}},{'G',{}}};
 static Matrix pwm;
 
 static void print_matrix(const Matrix& m) {
@@ -91,33 +91,43 @@ int main(int argc, char** argv) {
     }
 
     char nt;
-    std::vector<double> freq;
     std::stringstream ss;
     std::string line;
     double tmp;
+    int count;
     while (std::getline(infile, line)) {
+    	count = 0;
         ss = std::stringstream(line);
-        ss >> nt;
+        //ss >> nt;
+        //std::cout << "nt is " << nt << '\n';
         while (ss) {
             ss >> tmp;
             if (ss) {
-                freq.push_back(tmp);
+            	count++;
+            	if(count == 1) {
+            		nt = 'A';
+            	} else if (count == 2) {
+            		nt = 'C';
+            	} else if (count == 3) {
+            		nt = 'G';
+            	} else if (count == 4) {
+            		nt = 'T';
+            	}
+                frequencies[nt].push_back(tmp);
             }
         }
-        frequencies[CAP_NT(nt)] = freq;
-        freq.clear();
     }
     
     infile.close();
 
     // confirm that all lines are the same length
     std::size_t freq_count = frequencies['A'].size();
-    for (auto& pair : frequencies) {
-        if (pair.second.size() != freq_count) {
-            std::cerr << "Error: not all lines are the same length!\n";
-            return 1;
-        }
-    }
+    // for (auto& pair : frequencies) {
+    //     if (pair.second.size() != freq_count) {
+    //         std::cerr << "Error: not all lines are the same length!\n";
+    //         return 1;
+    //     }
+    // }
 
     std::cout << "Input Matrix:\n";
     print_matrix(frequencies);
