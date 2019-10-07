@@ -135,7 +135,6 @@ int main(int argc, char** argv) {
     
     pwmfile.close();
 
-    // TODO open GTF file
     // TODO find a good way to open the fasta file
     
     GTFFile gtf;
@@ -146,6 +145,16 @@ int main(int argc, char** argv) {
     }
 
     gtf.load();
+
+    std::cout << gtf.count() << '\n';
+
+    std::vector<GTFSequence> exons = gtf.filter([](auto seq) -> bool {
+        return seq.feature == "exon";
+    });
+
+    for (auto& s : exons) {
+        std::cout << s.feature << '\n';
+    }
 
     return 0;
 }
