@@ -6,6 +6,13 @@
 #include <sstream>
 #include <map>
 
+/*
+ * TODO get a PWM file as input
+ * TODO get a GTF file as input
+ * TODO get a genome file thing as input
+ * TODO use the GTF file to find the introns in the genome file thing
+ */
+
 const double EPSILON = 0.00000001111111111111;
 #define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
 
@@ -19,7 +26,15 @@ const double ADJUSTMENT = 0.00001;
 
 using Matrix = std::map<char, std::vector<double>>;
 
-static Matrix frequencies{{'A',{}},{'C',{}},{'T',{}},{'G',{}}};
+// TODO this should be renamed to pwm
+static Matrix frequencies{
+    {'A', {}},
+    {'C', {}},
+    {'T', {}},
+    {'G', {}},
+};
+
+// TODO this should be deleted
 static Matrix pwm;
 
 static void print_matrix(const Matrix& m) {
@@ -58,6 +73,7 @@ static inline double normalize(double d, double min, double max) {
     return d;
 }
 
+// TODO modify this
 static Matrix normalize(const Matrix& m) {
     // find max and min values
     double min = 0.0,
