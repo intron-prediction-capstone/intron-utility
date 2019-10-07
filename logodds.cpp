@@ -104,8 +104,6 @@ int main(int argc, char** argv) {
     while (std::getline(infile, line)) {
     	count = 0;
         ss = std::stringstream(line);
-        //ss >> nt;
-        //std::cout << "nt is " << nt << '\n';
         while (ss) {
             ss >> tmp;
             if (ss) {
@@ -126,7 +124,8 @@ int main(int argc, char** argv) {
     
     infile.close();
 
-    std::cout << "Input Matrix:\n";
+    std::cout << "Input Matrix:\n" << std::fixed;
+    std::cout.precision(3);
     print_matrix(frequencies);
 
     std::size_t freq_count = frequencies['A'].size();
@@ -138,7 +137,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    std::cout << "\nPWM Scores:\n" << std::fixed;
+    std::cout << "\nPWM Scores:\n";
     std::cout.precision(3);
     print_matrix(pwm);
 
