@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <cstdio>
 
 /*
  * TODO get a PWM file as input
@@ -97,18 +98,26 @@ static Matrix normalize(const Matrix& m) {
 }
 
 int main(int argc, char** argv) {
-    std::string inputfilename;
+    std::string pwmfilename, gtffilename, fastafilename;
     
     if (argc > 1) {
-        inputfilename = argv[1];
-    } else {
-        std::cerr << "No input file specified.\n";
+        pwmfilename = argv[1];
+    }
+    if (argc > 2) {
+        gtffilename = argv[2];
+    }
+    if (argc > 3) {
+        fastafilename = argv[3];
+    }
+
+    if (argc < 4) {
+        std::fprintf(stderr, "Usage: %s [pwm] [gtf] [fasta]\n", argv[0]);
         return 1;
     }
 
-    std::ifstream infile(inputfilename);
-    if (!infile) {
-        std::cerr << "Error opening file: " << inputfilename << '\n';
+    std::ifstream pwmfile(pwmfilename);
+    if (!pwmfile) {
+        std::cerr << "Error opening file: " << pwmfilename << '\n';
         return 1;
     }
 
@@ -117,7 +126,7 @@ int main(int argc, char** argv) {
     std::string line;
     double tmp;
     int count;
-    while (std::getline(infile, line)) {
+    while (std::getline(pwmfile, line)) {
     	count = 0;
         ss = std::stringstream(line);
         while (ss) {
@@ -138,7 +147,10 @@ int main(int argc, char** argv) {
         }
     }
     
-    infile.close();
+    pwmfile.close();
+
+    // TODO open GTF file
+    // TODO find a good way to open the fasta file
 
     std::cout << "Input Matrix:\n" << std::fixed;
     std::cout.precision(3);
