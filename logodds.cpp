@@ -23,9 +23,9 @@ static Matrix frequencies{{'A',{}},{'C',{}},{'T',{}},{'G',{}}};
 static Matrix pwm;
 
 static void print_matrix(const Matrix& m) {
-    for (auto& it : m) {
-        std::cout << it.first;
-        for (auto d : it.second) {
+    for (auto& [key, val] : m) {
+        std::cout << key;
+        for (auto d : val) {
             std::cout << '\t' << d;
         }
         std::cout << '\n';
@@ -42,8 +42,8 @@ static Matrix normalize(const Matrix& m) {
     // find max and min values
     double min = 0.0,
            max = 0.0;
-    for (auto& pair : m) {
-        for (double d : pair.second) {
+    for (auto& [key, val] : m) {
+        for (double d : val) {
             if (d < min) min = d;
             if (d > max) max = d;
         }
@@ -51,8 +51,8 @@ static Matrix normalize(const Matrix& m) {
     
     // normalize
     Matrix ret = m;
-    for (auto& pair : ret) {
-        for (double& d : pair.second) {
+    for (auto& [key, val] : ret) {
+        for (double& d : val) {
             if (DBL_EQ(d, 0.0)) {
                 d = 50.0;
             } else if (d > 0.0) {
@@ -120,23 +120,15 @@ int main(int argc, char** argv) {
     
     infile.close();
 
-    // confirm that all lines are the same length
-    std::size_t freq_count = frequencies['A'].size();
-    // for (auto& pair : frequencies) {
-    //     if (pair.second.size() != freq_count) {
-    //         std::cerr << "Error: not all lines are the same length!\n";
-    //         return 1;
-    //     }
-    // }
-
     std::cout << "Input Matrix:\n";
     print_matrix(frequencies);
 
+    std::size_t freq_count = frequencies['A'].size();
     std::vector<double> scores;
-    for (auto& pair : frequencies) {
-        pwm[pair.first] = std::vector<double>(freq_count, 0.0);
+    for (auto& [key, val] : frequencies) {
+        pwm[key] = std::vector<double>(freq_count, 0.0);
         for (std::size_t i = 0; i < freq_count; i++) {
-            pwm[pair.first][i] = score(pair.second[i]);
+            pwm[key][i] = score(val[i]);
         }
     }
 
