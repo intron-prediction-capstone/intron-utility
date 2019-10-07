@@ -6,6 +6,7 @@
 #include <sstream>
 #include <map>
 #include <cstdio>
+#include "gtf-cpp/gtf.h"
 
 const double EPSILON = 0.00000001111111111111;
 #define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
@@ -16,16 +17,12 @@ const double ADJUSTMENT = 0.00001;
 
 using Matrix = std::map<char, std::vector<double>>;
 
-// TODO this should be renamed to pwm
-static Matrix frequencies{
+static Matrix pwm{
     {'A', {}},
     {'C', {}},
     {'T', {}},
     {'G', {}},
 };
-
-// TODO this should be deleted
-static Matrix pwm;
 
 static void print_matrix(const Matrix& m) {
     for (auto& [key, val] : m) {
@@ -131,7 +128,7 @@ int main(int argc, char** argv) {
             	} else if (count == 4) {
             		nt = 'T';
             	}
-                frequencies[nt].push_back(tmp);
+                pwm[nt].push_back(tmp);
             }
         }
     }
@@ -140,27 +137,6 @@ int main(int argc, char** argv) {
 
     // TODO open GTF file
     // TODO find a good way to open the fasta file
-
-    std::cout << "Input Matrix:\n" << std::fixed;
-    std::cout.precision(3);
-    print_matrix(frequencies);
-
-    std::size_t freq_count = frequencies['A'].size();
-    std::vector<double> scores;
-    for (auto& [key, val] : frequencies) {
-        pwm[key] = std::vector<double>(freq_count, 0.0);
-        for (std::size_t i = 0; i < freq_count; i++) {
-            pwm[key][i] = score(val[i]);
-        }
-    }
-
-    std::cout << "\nPWM Scores:\n";
-    std::cout.precision(3);
-    print_matrix(pwm);
-
-    std::cout << "\nNormalized PWM Scores:\n";
-    std::cout.precision(1);
-    print_matrix(normalize(pwm));
 
     return 0;
 }
