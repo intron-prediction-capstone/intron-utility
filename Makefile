@@ -1,10 +1,11 @@
 CXXARGS=-std=c++17 -O3
 OUTPUT=a.out
+INPUT=$(wildcard *.cpp)
 
 all: $(OUTPUT)
 
-$(OUTPUT): logodds.cpp
-	$(CXX) -o $(OUTPUT) logodds.cpp $(CXXARGS)
+$(OUTPUT): $(INPUT)
+	$(CXX) -o $(OUTPUT) $(INPUT) $(CXXARGS)
 
 clean:
 	@rm -f $(OUTPUT)
