@@ -15,3 +15,8 @@ OUTPUT
     - Values >= 0 are scaled to fall within the 50-100 range
     - Values < 0 are scaled to fall within the 0-50 range, where 0 is the
       lowest ("most negative") number
+
+BUILDING
+
+  This program requires a C++17-compatible compiler, and if you have GNU Make
+  installed, you can use the Makefile to compile it.
