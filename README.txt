@@ -1,8 +1,6 @@
 DESCRIPTION
 
-  This program is (for now) a simple log-odds calculator. It does not do much
-  else yet, and will eventually have more utility in the prediction of U12
-  introns.
+  This program is meant to find and predict U12 introns.
 
 INPUT
 
