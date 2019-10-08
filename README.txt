@@ -4,17 +4,12 @@ DESCRIPTION
 
 INPUT
 
-  You must specify the file you want as the first command-line argument. Example
-  files can be found in the inputs directory.
+  Specify a PWM file (.tsv), a GTF file, and a FASTA file in that order as
+  command-line arguments.
 
 OUTPUT
 
-  The output from the program is a matrix like the input showing the PWM scores
-  of the given nucleotides at each position. It will also print the PWM scores
-  normalized like so:
-    - Values >= 0 are scaled to fall within the 50-100 range
-    - Values < 0 are scaled to fall within the 0-50 range, where 0 is the
-      lowest ("most negative") number
+  TBD
 
 BUILDING
 
