@@ -52,7 +52,7 @@ class FASTAFile {
                     throw std::runtime_error("End coordinate out of bounds");
                 }
 
-                if (NULL != std::strchr("actgACTGNn", tmp)) {
+                if (nullptr != std::strchr("actgACTGNn", tmp)) {
                     ret += tmp;
                     count++;
                 }
