@@ -7,6 +7,7 @@
 #include <map>
 #include <cstdio>
 #include "gtf-cpp/gtf.h"
+#include "fasta.h"
 
 const double EPSILON = 0.00000001111111111111;
 #define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
@@ -155,12 +156,9 @@ int main(int argc, char** argv) {
         << " sequences, found "
         << exons.size()
         << " exons.\n";
-
-    // time for the hard one: load the .fa file
-    // this is tricky, there are steps involved:
-    //  1. remove first line, which is an identifier of some sort
-    //  2. make sure we can get a string to data from it *without* newlines
-    //  3. make sure that we do not, under ANY circumstances, load the file into memory
+    
+    FASTAFile fasta;
+    if (!fasta.open(fastafilename
 
     return 0;
 }

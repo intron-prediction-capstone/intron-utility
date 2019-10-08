@@ -1,21 +1,21 @@
-#ifndef FATSA_H
-#define FATSA_H
+#ifndef FASTA_H
+#define FASTA_H
 
 #include <fstream>
 #include <string>
 #include <cstring>
 #include <stdexcept>
 
-class FATSAFile {
+class FASTAFile {
     public:
-        FATSAFile(): file("") {}
-        FATSAFile(const std::string& filename): file(filename) {
+        FASTAFile(): file("") {}
+        FASTAFile(const std::string& filename): file(filename) {
             if (!open(filename)) {
                 throw std::runtime_error("Error opening file: " + filename + "!");
             }
         }
 
-        ~FATSAFile() { infile.close(); }
+        ~FASTAFile() { infile.close(); }
 
         // returns false if opening the file failed
         // use this only if you used the default constructor.
@@ -72,4 +72,4 @@ class FATSAFile {
         }
 };
 
-#endif /* FATSA_H */
+#endif /* FASTA_H */
