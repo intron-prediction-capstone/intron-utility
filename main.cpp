@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
         fastafilename = argv[3];
     }
 
-    if (argc < 3) {
+    if (argc < 4) {
         std::fprintf(stderr, "Usage: %s [pwm] [gtf] [fasta]\n", argv[0]);
         return 1;
     }
@@ -158,7 +158,10 @@ int main(int argc, char** argv) {
         << " exons.\n";
     
     FASTAFile fasta;
-    if (!fasta.open(fastafilename
+    if (!fasta.open(fastafilename)) {
+        std::cerr << "Error opening fasta file: " << fastafilename << '\n';
+        return 1;
+    }
 
     return 0;
 }
