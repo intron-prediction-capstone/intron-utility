@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <string>
+#include <cstring>
 #include <stdexcept>
 
 class FATSAFile {
@@ -16,6 +17,8 @@ class FATSAFile {
 
         ~FATSAFile() { infile.close(); }
 
+        // returns false if opening the file failed
+        // use this only if you used the default constructor.
         bool open(const std::string& filename) {
             file = filename;
             infile = std::ifstream(file);
@@ -29,6 +32,7 @@ class FATSAFile {
             return (bool)infile;
         }
 
+        // closes the file
         void close() {
             infile.close();
         }
@@ -37,8 +41,22 @@ class FATSAFile {
         // so specifying 1, 2 would get 2nt
         std::string get_sequence(std::size_t start, std::size_t end) {
             std::string ret;
+            char tmp;
             infile.seekg(seq_start(start));
-            // TODO
+            std::size_t count = 0;
+            while (count < (end - start) + 1) {
+                tmp = infile.get();
+
+                if (tmp == std::ifstream::traits_type::eof()) {
+                    throw std::runtime_error("End coordinate out of bounds");
+                }
+
+                if (NULL != std::strchr("actgACTGNn", tmp)) {
+                    ret += tmp;
+                    count++;
+                }
+            }
+            return ret;
         }
 
     private:
