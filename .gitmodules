@@ -1,6 +1,6 @@
 [submodule "gtf-cpp"]
-	path = gtf-cpp
+	path = lib/gtf-cpp
 	url = https://github.com/willeccles/gtf-cpp
 [submodule "pdqsort"]
-	path = pdqsort
+	path = lib/pdqsort
 	url = https://github.com/orlp/pdqsort
