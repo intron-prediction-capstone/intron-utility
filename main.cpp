@@ -6,8 +6,8 @@
 #include <sstream>
 #include <map>
 #include <cstdio>
-#include "gtf-cpp/gtf.h"
-#include "pdqsort/pdqsort.h"
+#include "lib/gtf-cpp/gtf.h"
+#include "lib/pdqsort/pdqsort.h"
 #include "fasta.h"
 
 const double EPSILON = 0.00000001111111111111;

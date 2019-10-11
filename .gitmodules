@@ -4,3 +4,9 @@
 [submodule "pdqsort"]
 	path = lib/pdqsort
 	url = https://github.com/orlp/pdqsort
+[submodule "lib/pdqsort"]
+	path = lib/pdqsort
+	url = https://github.com/orlp/pdqsort
+[submodule "lib/gtf-cpp"]
+	path = lib/gtf-cpp
+	url = https://github.com/willeccles/gtf-cpp
