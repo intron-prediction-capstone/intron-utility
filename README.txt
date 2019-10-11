@@ -2,6 +2,11 @@ DESCRIPTION
 
   This program is meant to find and predict U12 introns.
 
+CLONING
+
+  Make sure to use --recursive when cloning the git repository; otherwise you
+  will need to manually initialize the submodules in the lib directory.
+
 INPUT
 
   Specify a PWM file (.tsv), a GTF file, and a FASTA file in that order as
@@ -15,3 +20,10 @@ BUILDING
 
   This program requires a C++17-compatible compiler, and if you have GNU Make
   installed, you can use the Makefile to compile it.
+
+LIBRARIES
+
+  This program uses the following external dependencies (represented as
+  submodules in this repository):
+    - gtf-cpp for GTF parsing (github/willeccles/gtf-cpp)
+    - pdqsort to sort arrays quickly without relying on std::sort (github/orlp/pdqsort)
