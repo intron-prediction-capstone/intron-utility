@@ -7,8 +7,8 @@
 #include <map>
 #include <cstdio>
 #include "gtf-cpp/gtf.h"
+#include "pdqsort/pdqsort.h"
 #include "fasta.h"
-#include <algorithm>
 
 const double EPSILON = 0.00000001111111111111;
 #define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
         return seq.feature == "exon";
     });
     // sort exons by start
-    std::sort(exons.begin(), exons.end(), [](GTFSequence& a, GTFSequence& b) {
+    pdqsort(exons.begin(), exons.end(), [](GTFSequence& a, GTFSequence& b) {
         return a.start < b.start;
     });
 
