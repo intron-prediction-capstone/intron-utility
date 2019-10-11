@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
             std::cout << "i = " << i << '\n';
             std::cout << "start = " << exons[i].end - 2 << '\n'
                 << "end = " << exons[i+1].start + 2 << '\n';
-            break;
+            return 1;
         }
     }
     introns.shrink_to_fit();
