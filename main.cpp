@@ -167,12 +167,15 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::vector<std::string> introns;/*(gtf.count() - 1);*/
+    std::vector<std::string> introns;
+    std::string tmpstr;
     for (std::size_t i = 0; i < exons.size() - 1; i++) {
         if (exons[i].end > exons[i+1].start) continue;
         try {
-            introns.push_back((fasta.get_sequence(exons[i].end - 2, // 3 from previous exon
-                    exons[i+1].start+2))); // 3nt from next exon
+            tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i].end + 10);
+            tmpstr += " ... ";
+            tmpstr += fasta.get_sequence(exons[i+1].start - 14, exons[i+1].start + 2);
+            introns.push_back(tmpstr);
         } catch(const std::runtime_error& e) {
             std::cout << "Error: " << e.what() << '\n';
             std::cout << "i = " << i << '\n';
@@ -182,6 +185,10 @@ int main(int argc, char** argv) {
         }
     }
     introns.shrink_to_fit();
+
+    for (std::size_t i = 0; i < 10; i++) {
+        std::cout << introns[i] << '\n';
+    }
 
     std::cout << "Loaded " << introns.size() << " introns.\n";
 
