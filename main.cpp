@@ -8,6 +8,7 @@
 #include <cstdio>
 #include "gtf-cpp/gtf.h"
 #include "fasta.h"
+#include <algorithm>
 
 const double EPSILON = 0.00000001111111111111;
 #define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
@@ -138,17 +139,20 @@ int main(int argc, char** argv) {
     
     // open the GTF file
     GTFFile gtf;
+    gtf.setfilename(gtffilename);
     try {
-        gtf.setfilename(gtffilename);
+        gtf.load();
     } catch (const GTFError& e) {
         std::cerr << e.what() << '\n';
         return 1;
     }
 
-    gtf.load();
-
     std::vector<GTFSequence> exons = gtf.filter([](auto seq) -> bool {
         return seq.feature == "exon";
+    });
+    // sort exons by start
+    std::sort(exons.begin(), exons.end(), [](GTFSequence& a, GTFSequence& b) {
+        return a.start < b.start;
     });
 
     std::cout << "Out of "
@@ -162,6 +166,27 @@ int main(int argc, char** argv) {
         std::cerr << "Error opening fasta file: " << fastafilename << '\n';
         return 1;
     }
+
+    std::vector<std::string> introns;/*(gtf.count() - 1);*/
+    for (std::size_t i = 0; i < exons.size() - 1; i++) {
+        if (exons[i].end > exons[i+1].start) continue;
+        try {
+            introns.push_back((fasta.get_sequence(exons[i].end - 2, // 3 from previous exon
+                    exons[i+1].start+2))); // 3nt from next exon
+        } catch(const std::runtime_error& e) {
+            std::cout << "Error: " << e.what() << '\n';
+            std::cout << "i = " << i << '\n';
+            std::cout << "start = " << exons[i].end - 2 << '\n'
+                << "end = " << exons[i+1].start + 2 << '\n';
+            break;
+        }
+    }
+    introns.shrink_to_fit();
+
+    std::cout << "Loaded " << introns.size() << " introns.\n";
+
+    std::string x;
+    std::getline(std::cin, x);
 
     return 0;
 }
