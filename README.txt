@@ -9,8 +9,8 @@ CLONING
 
 INPUT
 
-  Specify a PWM file (.tsv), a GTF file, and a FASTA file in that order as
-  command-line arguments.
+  Specify 3 PWM files (.tsv), a GTF file, and a FASTA file in that order as
+  command-line arguments. Run without arguments for more details.
 
 OUTPUT
 
