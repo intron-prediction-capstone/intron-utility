@@ -38,8 +38,7 @@ static void print_matrix(const Matrix& m) {
 
 static inline double score(double f) {
     if (DBL_EQ(f, 0.0)) return 0.0;
-    double tmp = f / BACKGROUND;
-    return log2(tmp);
+    return log2(f / BACKGROUND + ADJUSTMENT); // adjustment so that no log2(0)
 }
 
 static inline double normalize(double d, double min, double max) {
@@ -62,7 +61,7 @@ static inline double normalize(double d, double min, double max) {
     return d;
 }
 
-// TODO modify this
+// TODO modify this to work for not this
 static Matrix normalize(const Matrix& m) {
     // find max and min values
     double min = 0.0,
@@ -172,9 +171,9 @@ int main(int argc, char** argv) {
     for (std::size_t i = 0; i < exons.size() - 1; i++) {
         if (exons[i].end > exons[i+1].start) continue;
         try {
-            tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i].end + 10);
+            tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i].end + 10, true);
             tmpstr += " ... ";
-            tmpstr += fasta.get_sequence(exons[i+1].start - 14, exons[i+1].start + 2);
+            tmpstr += fasta.get_sequence(exons[i+1].start - 14, exons[i+1].start + 2, true);
             introns.push_back(tmpstr);
         } catch(const std::runtime_error& e) {
             std::cout << "Error: " << e.what() << '\n';

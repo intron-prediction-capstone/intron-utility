@@ -47,7 +47,8 @@ class FASTAFile {
 
         // gets a string of nucleotides from start to end, inclusive;
         // so specifying 1, 2 would get 2nt
-        std::string get_sequence(std::size_t start, std::size_t end) {
+        // 'caps' defaults to false. If specified, this uppercases all nucleotides
+        std::string get_sequence(std::size_t start, std::size_t end, bool caps = false) {
             std::string ret;
             char tmp;
             infile.seekg(seq_start(start));
@@ -60,7 +61,11 @@ class FASTAFile {
                 }
 
                 if (nullptr != std::strchr(VALID_CODES, TO_UPPER(tmp))) {
-                    ret += tmp;
+                    if (caps) {
+                        ret += TO_UPPER(tmp);
+                    } else {
+                        ret += tmp;
+                    }
                     count++;
                 }
             }
