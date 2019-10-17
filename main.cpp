@@ -154,11 +154,7 @@ int main(int argc, char** argv) {
         return a.start < b.start;
     });
 
-    std::cout << "Out of "
-        << gtf.count()
-        << " sequences, found "
-        << exons.size()
-        << " exons.\n";
+    std::cout << "Loaded " << exons.size() << " exons\n";
     
     FASTAFile fasta;
     if (!fasta.open(fastafilename)) {
@@ -174,6 +170,12 @@ int main(int argc, char** argv) {
             tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i].end + 10, true);
             tmpstr += " ... ";
             tmpstr += fasta.get_sequence(exons[i+1].start - 14, exons[i+1].start + 2, true);
+#if 0
+            if (i < 10)
+                std::cout << exons[i].end - 2 << '-' << exons[i].end + 10
+                    << " ... " <<
+                    exons[i+1].start - 14 << '-' << exons[i+1].start + 2 << '\n';
+#endif
             introns.push_back(tmpstr);
         } catch(const std::runtime_error& e) {
             std::cout << "Error: " << e.what() << '\n';
@@ -185,11 +187,13 @@ int main(int argc, char** argv) {
     }
     introns.shrink_to_fit();
 
+#if 0
     for (std::size_t i = 0; i < 10; i++) {
         std::cout << introns[i] << '\n';
     }
+#endif
 
-    std::cout << "Loaded " << introns.size() << " introns.\n";
+    std::cout << "Loaded " << introns.size() << " introns\n";
 
     return 0;
 }
