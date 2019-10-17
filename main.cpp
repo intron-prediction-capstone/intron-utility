@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <limits>
+#include <cstdio>
 #include <map>
 #include <cstdio>
 #include "lib/gtf-cpp/gtf.h"
@@ -24,16 +26,18 @@ struct Intron {
     std::string five_prime;
     // 3' sequence
     std::string three_prime;
+    double score,
+           score_normalized;
 };
 
 // 3' PWM
-static Matrix pwm_3p;
+static Matrix pwm_lod_3p;
 
 // 5' PWM
-static Matrix pwm_5p;
+static Matrix pwm_lod_5p;
 
 // B' PWM
-static Matrix pwm_Bp;
+static Matrix pwm_lod_Bp;
 
 static void print_matrix(const Matrix& m) {
     for (auto& [key, val] : m) {
@@ -45,7 +49,7 @@ static void print_matrix(const Matrix& m) {
     }
 }
 
-static inline double score(double f) {
+static inline double log_odds(double f) {
     if (DBL_EQ(f, 0.0)) return 0.0;
     return log2(f / BACKGROUND + ADJUSTMENT); // adjustment so that no log2(0)
 }
@@ -70,31 +74,33 @@ static inline double normalize(double d, double min, double max) {
     return d;
 }
 
-// TODO modify this to work for not this
-static Matrix normalize(const Matrix& m) {
-    // find max and min values
-    double min = 0.0,
-           max = 0.0;
-    for (auto& [key, val] : m) {
-        for (double d : val) {
-            if (d < min) min = d;
-            if (d > max) max = d;
+static void score_and_normalize_introns(std::vector<Intron>& introns) {
+    for (auto& intron : introns) {
+        double sum = 0.0;
+        for (std::size_t i = 0; i < intron.five_prime.size(); i++) {
+            sum += pwm_lod_5p[intron.five_prime[i]][i];
         }
-    }
-    
-    // normalize
-    Matrix ret = m;
-    for (auto& [key, val] : ret) {
-        for (double& d : val) {
-            d = normalize(d, min, max);
+        for (std::size_t i = 0; i < intron.three_prime.size(); i++) {
+            sum += pwm_lod_3p[intron.three_prime[i]][i];
         }
+        intron.score = sum;
     }
 
-    return ret;
+    double min = std::numeric_limits<double>::max(),
+           max = std::numeric_limits<double>::lowest();
+    for (auto& i : introns) {
+        if (i.score > max) max = i.score;
+        if (i.score < min) min = i.score;
+    }
+
+    for (auto& i : introns) {
+        i.score_normalized = normalize(i.score, min, max);
+    }
 }
 
 // parse a pwm file and return the pwm
-Matrix parse_pwm(const std::string&);
+// this also applies the `score' function to the values to make a lod
+static Matrix parse_pwm(const std::string&);
 
 int main(int argc, char** argv) {
     std::string pwmfilename_3p, pwmfilename_5p, pwmfilename_Bp, gtffilename, fastafilename;
@@ -120,9 +126,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    pwm_3p = parse_pwm(pwmfilename_3p);
-    pwm_5p = parse_pwm(pwmfilename_5p);
-    pwm_Bp = parse_pwm(pwmfilename_Bp);
+    pwm_lod_3p = parse_pwm(pwmfilename_3p);
+    pwm_lod_5p = parse_pwm(pwmfilename_5p);
+    pwm_lod_Bp = parse_pwm(pwmfilename_Bp);
     std::cout << "-> Loaded PWMs\n";
 
     // open the GTF file
@@ -156,9 +162,12 @@ int main(int argc, char** argv) {
     for (std::size_t i = 0; i < exons.size() - 1; i++) {
         if (exons[i].end > exons[i+1].start) continue;
         try {
-            tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i].end + 10, true);
-            tmpstr += fasta.get_sequence(exons[i+1].start - 14, exons[i+1].start + 2, true);
-            introns.push_back({ tmpstr.substr(0, 13), tmpstr.substr(13), });
+            // 3nt from upstream exon and 11nt from head of intron
+            tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i].end + 11, true);
+            // 4nt from downstream exon and 14nt from end of intron
+            tmpstr += fasta.get_sequence(exons[i+1].start - 14, exons[i+1].start + 3, true);
+            // 5' is the first 14 chars, 3' is the rest
+            introns.push_back({ tmpstr.substr(0, 14), tmpstr.substr(14), });
 #if 0
             if (i < 10)
                 std::cout << exons[i].end - 2 << '-' << exons[i].end + 10
@@ -177,7 +186,7 @@ int main(int argc, char** argv) {
     }
     introns.shrink_to_fit();
 
-#if 1
+#if 0
     for (std::size_t i = 0; i < 10; i++) {
         std::cout << introns[i].five_prime << " ... " << introns[i].three_prime << '\n';
     }
@@ -185,11 +194,22 @@ int main(int argc, char** argv) {
 
     std::cout << "-> Loaded " << introns.size() << " introns\n";
 
+    score_and_normalize_introns(introns);
+
+    std::cout << "-> Scored introns\n";
+
+#if 0
+    for (std::size_t i = 0; i < 10; i++) {
+        std::printf("Score: %.2f\tNormalized: %.2f\n", introns[i].score, introns[i].score_normalized);
+    }
+#endif
+
     return 0;
 }
 
 // parse a pwm from a file
-Matrix parse_pwm(const std::string& pwmfilename) {
+// this also applies the `score' function to the values to make a lod
+static Matrix parse_pwm(const std::string& pwmfilename) {
     Matrix _pwm{
         {'G', {}},
         {'T', {}},
@@ -223,7 +243,7 @@ Matrix parse_pwm(const std::string& pwmfilename) {
             	} else if (count == 4) {
             		nt = 'T';
             	}
-                _pwm[nt].push_back(tmp);
+                _pwm[nt].push_back(log_odds(tmp));
             }
         }
     }
