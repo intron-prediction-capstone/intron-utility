@@ -192,8 +192,5 @@ int main(int argc, char** argv) {
 
     std::cout << "Loaded " << introns.size() << " introns.\n";
 
-    std::string x;
-    std::getline(std::cin, x);
-
     return 0;
 }

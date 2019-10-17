@@ -7,6 +7,13 @@
 #include <stdexcept>
 #include <iostream>
 
+// Macro to convert a character to uppercase
+// This makes the strchr call with valid codes about half as long
+#define TO_UPPER(c) (((c) >= 'a' && (c) <= 'z') ? ((c) - ('a' - 'A')) : (c))
+
+// Valid codes. Source: Wikipedia
+const char* VALID_CODES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ*-";
+
 class FASTAFile {
     public:
         FASTAFile(): file("") {}
@@ -52,7 +59,7 @@ class FASTAFile {
                     throw std::runtime_error("End coordinate out of bounds");
                 }
 
-                if (nullptr != std::strchr("actgACTGNn", tmp)) {
+                if (nullptr != std::strchr(VALID_CODES, TO_UPPER(tmp))) {
                     ret += tmp;
                     count++;
                 }
