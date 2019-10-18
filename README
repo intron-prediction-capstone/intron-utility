@@ -26,4 +26,5 @@ LIBRARIES
   This program uses the following external dependencies (represented as
   submodules in this repository):
     - gtf-cpp for GTF parsing (github/willeccles/gtf-cpp)
+    - fasta-cpp for FASTA parsing (github/willeccles/gtf-cpp)
     - pdqsort to sort arrays quickly without relying on std::sort (github/orlp/pdqsort)
