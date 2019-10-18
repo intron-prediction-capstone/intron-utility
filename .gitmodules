@@ -10,3 +10,6 @@
 [submodule "lib/gtf-cpp"]
 	path = lib/gtf-cpp
 	url = https://github.com/willeccles/gtf-cpp
+[submodule "lib/fasta-cpp"]
+	path = lib/fasta-cpp
+	url = https://github.com/willeccles/fasta-cpp

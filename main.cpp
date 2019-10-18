@@ -10,7 +10,7 @@
 #include <cstdio>
 #include "lib/gtf-cpp/gtf.h"
 #include "lib/pdqsort/pdqsort.h"
-#include "fasta.h"
+#include "lib/fasta-cpp/fasta.h"
 
 const double EPSILON = 0.00000001111111111111;
 #define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
