@@ -1,0 +1,39 @@
+PREDICTION
+
+The first way you can use this program is to predict which introns in a FASTA
+file are U12-type introns based on 3 input PWM files and one GTF file. This can
+be done by using the following arguments to the program:
+
+  <executablename> [3' pwm] [5' pwm] [B' pwm] [gtf] [fasta]
+    
+    - [3' pwm] is a PWM in a TSV file, downloaded from the splice rack to be
+                used for the 3'ss
+    - [5' pwm] is a PWM in a TSV file, downloaded from the splice rack to be
+                used for the 5'ss
+    - [B' pwm] is a PWM in a TSV file, downloaded from the splice rack to be
+                used to find the breakpoint
+    - [gtf]    is the GTF file corresponding to the FASTA file, where exons will
+                be read from.
+    - [fasta]  is the FASTA file to read the introns from
+
+*This method is a work in progress, so do not expect it to return useful data!
+
+PARSING
+
+The second way to use this program is to simply parse the introns from the FASTA
+file given a GTF file. This is simpler, but any further computations on the
+introns themselves are the responsibility of the user. This will output the
+given introns into a file, which will be overwritten should it not exist.
+
+  <executablename> [gtf] [fasta] [output]
+
+    - [gtf]    is the GTF file to be used to locate introns
+    - [fasta]  is the FASTA file to search for introns
+    - [output] is the file to which the introns should be written, one per line
+
+This program will create or overwrite the file specified as [output], putting
+one intron on each line. Thus, the number of introns found = the number of lines
+in the file.
+
+*Note that this program will not remove U2 type introns. All introns will remain
+in the output.
