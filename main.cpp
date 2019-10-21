@@ -271,7 +271,16 @@ static int get_introns(const std::string& gtffile,
             // 3nt from upstream
             // 4nt from downstream
             tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i+1].start + 3, true);
-            if (tmpstr.size() < 60) continue; // TODO see issue #3
+            // TODO see issue #3
+#if 0
+            if (tmpstr.size() < 60) {
+                std::cout << "Length of " << tmpstr.size() - 7
+                    << " at " << exons[i].end + 1 << '-' << exons[i+1].start-1 << '\n';
+                continue;
+            }
+#else
+            if (tmpstr.size() < 60) continue;
+#endif
 
             // 5' is the first 14 chars, 3' is the last 18
             // the full sequence is everything minus the first 3 and last 4
