@@ -7,14 +7,9 @@ CLONING
   Make sure to use --recursive when cloning the git repository; otherwise you
   will need to manually initialize the submodules in the lib directory.
 
-INPUT
+USAGE
 
-  Specify 3 PWM files (.tsv), a GTF file, and a FASTA file in that order as
-  command-line arguments. Run without arguments for more details.
-
-OUTPUT
-
-  TBD
+  See the USAGE file for more information on how to use this program.
 
 BUILDING
 
