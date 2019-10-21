@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <map>
 #include <cstdio>
+#include <cstring>
 #include "lib/gtf-cpp/gtf.h"
 #include "lib/pdqsort/pdqsort.h"
 #include "lib/fasta-cpp/fasta.h"
@@ -21,11 +22,15 @@ const double ADJUSTMENT = 0.00001;
 
 using Matrix = std::map<char, std::vector<double>>;
 
+// Structure representing an intron
 struct Intron {
     // 5' sequence
     std::string five_prime;
     // 3' sequence
     std::string three_prime;
+    // full intron *not counting upstream and downstream exon nt*
+    std::string full_sequence;
+
     double score,
            score_normalized;
 };
@@ -102,38 +107,138 @@ static void score_and_normalize_introns(std::vector<Intron>& introns) {
 // this also applies the `score' function to the values to make a lod
 static Matrix parse_pwm(const std::string&);
 
+// parser-only operation
+static int get_introns(const std::string& gtffile,
+        const std::string& fastafile,
+        std::vector<Intron>& outputintrons);
+
+static void usage(char* executable) {
+    std::fprintf(stderr,
+            "Usage:\n"
+            "\t1: %s --parse [gtf] [fasta] [output]\n"
+            "\t2: %s [3' pwm] [5' pwm] [B' pwm] [gtf] [fasta]\n"
+            "\n\t\t1: Parse a FASTA file with a GTF file and print out any introns"
+            "\n\t\t   found into the [output] file."
+            "\n\t\t2: Take a 3' PWM, 5' PWM, and B' PWM and predict U12 introns from"
+            "\n\t\t   the given GTF and FASTA files.\n",
+            executable, executable);
+}
+
 int main(int argc, char** argv) {
-    std::string pwmfilename_3p, pwmfilename_5p, pwmfilename_Bp, gtffilename, fastafilename;
-    
-    if (argc > 1) {
-        pwmfilename_3p = argv[1];
-    }
-    if (argc > 2) {
-        pwmfilename_5p = argv[2];
-    }
-    if (argc > 3) {
-        pwmfilename_Bp = argv[3];
-    }
-    if (argc > 4) {
-        gtffilename = argv[4];
-    }
-    if (argc > 5) {
-        fastafilename = argv[5];
+    std::string pwmfilename_3p,
+        pwmfilename_5p,
+        pwmfilename_Bp,
+        gtffilename,
+        fastafilename,
+        outputfilename;
+
+    bool parseronly = false;
+
+    if (argc == 1) {
+        usage(argv[0]);
+        return 1;
     }
 
-    if (argc < 6) {
-        std::fprintf(stderr, "Usage: %s [3' pwm] [5' pwm] [B' pwm] [gtf] [fasta]\n", argv[0]);
+    if (argc > 1) {
+        parseronly = (0 == std::strcmp(argv[1], "--parse"));
+        if (!parseronly) {
+            pwmfilename_3p = argv[1];
+        }
+    }
+    if (argc > 2) {
+        if (parseronly) {
+            gtffilename = argv[2];
+        } else {
+            pwmfilename_5p = argv[2];
+        }
+    }
+    if (argc > 3) {
+        if (parseronly) {
+            fastafilename = argv[3];
+        } else {
+            pwmfilename_Bp = argv[3];
+        }
+    }
+    if (argc > 4) {
+        if (parseronly) {
+            outputfilename = argv[4];
+        } else {
+            gtffilename = argv[4];
+        }
+    }
+    if (!parseronly) {
+        if (argc > 5) {
+            fastafilename = argv[5];
+        }
+    }
+
+    if ((parseronly && argc < 5) || (!parseronly && argc < 6)) {
+        usage(argv[0]);
         return 1;
+    }
+
+    // do parser-only operation
+    if (parseronly) {
+        std::vector<Intron> introns;
+        std::ofstream outfile(outputfilename);
+        if (!outfile) {
+            std::cerr << "Error opening output file for writing: " << outputfilename << '\n';
+            return 1;
+        }
+
+        int ret = get_introns(gtffilename, fastafilename, introns);
+        if (ret == 0) {
+            std::cout << "-> Writing introns to file...";
+            std::size_t intronswritten = 0;
+            const char* logfmt = "\r-> Writing introns to file: [%lu/%lu]";
+            for (auto& intron : introns) {
+                outfile << intron.full_sequence << '\n';
+                intronswritten++;
+                std::printf(logfmt, intronswritten, introns.size());
+            }
+            std::cout << "\n-> Wrote introns to file\n";
+        }
+
+        return 0;
     }
 
     pwm_lod_3p = parse_pwm(pwmfilename_3p);
     pwm_lod_5p = parse_pwm(pwmfilename_5p);
     pwm_lod_Bp = parse_pwm(pwmfilename_Bp);
     std::cout << "-> Loaded PWMs\n";
+    
+    std::vector<Intron> introns;
+    // get the introns
+    int ret = get_introns(gtffilename, fastafilename, introns);
+    if (ret != 0) return ret;
+
+    score_and_normalize_introns(introns);
+
+    std::cout << "-> Scored introns\n";
+
+#if 1 // display first N introns
+    for (std::size_t i = 0; i < 10; i++) {
+        std::cout << introns[i].five_prime << " ... " << introns[i].three_prime << '\n';
+    }
+#endif
+
+#if 1 // display first N introns' scores
+    for (std::size_t i = 0; i < 10; i++) {
+        std::printf("Score: %.2f\tNormalized: %.2f\n", introns[i].score, introns[i].score_normalized);
+    }
+#endif
+
+    return 0;
+}
+
+// get introns
+static int get_introns(const std::string& gtffile,
+        const std::string& fastafile,
+        std::vector<Intron>& outputintrons) {
 
     // open the GTF file
     GTFFile gtf;
-    gtf.setfilename(gtffilename);
+    gtf.setfilename(gtffile);
     try {
         gtf.load();
     } catch (const GTFError& e) {
@@ -152,22 +257,29 @@ int main(int argc, char** argv) {
     std::cout << "-> Loaded " << exons.size() << " exons\n";
     
     FASTAFile fasta;
-    if (!fasta.open(fastafilename)) {
-        std::cerr << "Error opening fasta file: " << fastafilename << '\n';
+    if (!fasta.open(fastafile)) {
+        std::cerr << "Error opening fasta file: " << fastafile << '\n';
         return 1;
     }
 
-    std::vector<Intron> introns;
+    outputintrons.clear();
     std::string tmpstr;
     for (std::size_t i = 0; i < exons.size() - 1; i++) {
+        // cut out overlapped exons
         if (exons[i].end > exons[i+1].start) continue;
         try {
-            // 3nt from upstream exon and 11nt from head of intron
-            tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i].end + 11, true);
-            // 4nt from downstream exon and 14nt from end of intron
-            tmpstr += fasta.get_sequence(exons[i+1].start - 14, exons[i+1].start + 3, true);
-            // 5' is the first 14 chars, 3' is the rest
-            introns.push_back({ tmpstr.substr(0, 14), tmpstr.substr(14), });
+            // 3nt from upstream
+            // 4nt from downstream
+            tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i+1].start + 3, true);
+            if (tmpstr.size() < 60) continue; // TODO see issue #3
+
+            // 5' is the first 14 chars, 3' is the last 18
+            // the full sequence is everything minus the first 3 and last 4
+            outputintrons.push_back({
+                    tmpstr.substr(0, 14),
+                    tmpstr.substr(tmpstr.size() - 18),
+                    tmpstr.substr(3, tmpstr.size() - 7)
+                });
 #if 0
             if (i < 10)
                 std::cout << exons[i].end - 2 << '-' << exons[i].end + 10
@@ -184,25 +296,9 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
-    introns.shrink_to_fit();
+    outputintrons.shrink_to_fit();
 
-    std::cout << "-> Loaded " << introns.size() << " introns\n";
-
-    score_and_normalize_introns(introns);
-
-    std::cout << "-> Scored introns\n";
-
-#if 1 // display first N introns
-    for (std::size_t i = 0; i < 10; i++) {
-        std::cout << introns[i].five_prime << " ... " << introns[i].three_prime << '\n';
-    }
-#endif
-
-#if 1 // display first N introns' scores
-    for (std::size_t i = 0; i < 10; i++) {
-        std::printf("Score: %.2f\tNormalized: %.2f\n", introns[i].score, introns[i].score_normalized);
-    }
-#endif
+    std::cout << "-> Loaded " << outputintrons.size() << " introns\n";
 
     return 0;
 }
