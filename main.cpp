@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <map>
 #include <cstdio>
+#include <cstring>
 #include "lib/gtf-cpp/gtf.h"
 #include "lib/pdqsort/pdqsort.h"
 #include "lib/fasta-cpp/fasta.h"
@@ -102,28 +103,74 @@ static void score_and_normalize_introns(std::vector<Intron>& introns) {
 // this also applies the `score' function to the values to make a lod
 static Matrix parse_pwm(const std::string&);
 
+void usage(char* executable) {
+    std::fprintf(stderr,
+            "Usage:\n"
+            "\t1: %s --parse [gtf] [fasta] [output]\n"
+            "\t2: %s [3' pwm] [5' pwm] [B' pwm] [gtf] [fasta]\n"
+            "\n\t\t1: Parse a FASTA file with a GTF file and print out any introns"
+            "\n\t\t   found into the [output] file."
+            "\n\t\t2: Take a 3' PWM, 5' PWM, and B' PWM and predict U12 introns from"
+            "\n\t\t   the given GTF and FASTA files.\n",
+            executable, executable);
+}
+
 int main(int argc, char** argv) {
-    std::string pwmfilename_3p, pwmfilename_5p, pwmfilename_Bp, gtffilename, fastafilename;
-    
-    if (argc > 1) {
-        pwmfilename_3p = argv[1];
-    }
-    if (argc > 2) {
-        pwmfilename_5p = argv[2];
-    }
-    if (argc > 3) {
-        pwmfilename_Bp = argv[3];
-    }
-    if (argc > 4) {
-        gtffilename = argv[4];
-    }
-    if (argc > 5) {
-        fastafilename = argv[5];
+    std::string pwmfilename_3p,
+        pwmfilename_5p,
+        pwmfilename_Bp,
+        gtffilename,
+        fastafilename,
+        outputfilename;
+
+    bool parseronly = false;
+
+    if (argc == 1) {
+        usage();
+        return 1;
     }
 
-    if (argc < 6) {
+    if (argc > 1) {
+        parseronly = (0 == std::strcmp(argv[1], "--parse"));
+        if (!parseronly) {
+            pwmfilename_3p = argv[1];
+        }
+    }
+    if (argc > 2) {
+        if (parseronly) {
+            gtffilename = argv[2];
+        } else {
+            pwmfilename_5p = argv[2];
+        }
+    }
+    if (argc > 3) {
+        if (parseronly) {
+            fastafilename = argv[3];
+        } else {
+            pwmfilename_Bp = argv[3];
+        }
+    }
+    if (argc > 4) {
+        if (parseronly) {
+            outputfilename = argv[4];
+        } else {
+            gtffilename = argv[4];
+        }
+    }
+    if (!parseronly) {
+        if (argc > 5) {
+            fastafilename = argv[5];
+        }
+    }
+
+    if ((parseronly && argc < 5) || (!parseronly && argc < 6)) {
+        usage();
         std::fprintf(stderr, "Usage: %s [3' pwm] [5' pwm] [B' pwm] [gtf] [fasta]\n", argv[0]);
         return 1;
+    }
+
+    if (parseronly) {
+        return parser(gtffilename, fastafilename, outputfilename);
     }
 
     pwm_lod_3p = parse_pwm(pwmfilename_3p);
