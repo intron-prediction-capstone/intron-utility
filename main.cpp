@@ -165,7 +165,6 @@ int main(int argc, char** argv) {
 
     if ((parseronly && argc < 5) || (!parseronly && argc < 6)) {
         usage();
-        std::fprintf(stderr, "Usage: %s [3' pwm] [5' pwm] [B' pwm] [gtf] [fasta]\n", argv[0]);
         return 1;
     }
 
