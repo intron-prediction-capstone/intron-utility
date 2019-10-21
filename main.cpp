@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::vector<GTFSequence> exons = gtf.filter([](auto seq) -> bool {
+    std::vector<GTFSequence> exons = gtf.filter([](const auto& seq) {
         return seq.feature == "exon";
     });
     // sort exons by start
@@ -186,19 +186,19 @@ int main(int argc, char** argv) {
     }
     introns.shrink_to_fit();
 
-#if 0
-    for (std::size_t i = 0; i < 10; i++) {
-        std::cout << introns[i].five_prime << " ... " << introns[i].three_prime << '\n';
-    }
-#endif
-
     std::cout << "-> Loaded " << introns.size() << " introns\n";
 
     score_and_normalize_introns(introns);
 
     std::cout << "-> Scored introns\n";
 
-#if 0
+#if 1 // display first N introns
+    for (std::size_t i = 0; i < 10; i++) {
+        std::cout << introns[i].five_prime << " ... " << introns[i].three_prime << '\n';
+    }
+#endif
+
+#if 1 // display first N introns' scores
     for (std::size_t i = 0; i < 10; i++) {
         std::printf("Score: %.2f\tNormalized: %.2f\n", introns[i].score, introns[i].score_normalized);
     }
