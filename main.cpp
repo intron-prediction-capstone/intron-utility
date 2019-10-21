@@ -22,6 +22,7 @@ const double ADJUSTMENT = 0.00001;
 
 using Matrix = std::map<char, std::vector<double>>;
 
+// Structure representing an intron
 struct Intron {
     // 5' sequence
     std::string five_prime;
@@ -106,7 +107,12 @@ static void score_and_normalize_introns(std::vector<Intron>& introns) {
 // this also applies the `score' function to the values to make a lod
 static Matrix parse_pwm(const std::string&);
 
-void usage(char* executable) {
+// parser-only operation
+static int get_introns(const std::string& gtffile,
+        const std::string& fastafile,
+        std::vector<Intron>& outputintrons);
+
+static void usage(char* executable) {
     std::fprintf(stderr,
             "Usage:\n"
             "\t1: %s --parse [gtf] [fasta] [output]\n"
@@ -117,11 +123,6 @@ void usage(char* executable) {
             "\n\t\t   the given GTF and FASTA files.\n",
             executable, executable);
 }
-
-// parser-only operation
-static int get_introns(const std::string& gtffile,
-        const std::string& fastafile,
-        std::vector<Intron>& outputintrons);
 
 int main(int argc, char** argv) {
     std::string pwmfilename_3p,
