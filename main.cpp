@@ -1,119 +1,39 @@
 #include <vector>
-#include <cmath>
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <limits>
 #include <cstdio>
 #include <map>
+#include <limits>
 #include <cstdio>
 #include <cstring>
 #include "lib/gtf-cpp/gtf.h"
 #include "lib/pdqsort/pdqsort.h"
 #include "lib/fasta-cpp/fasta.h"
+#include "introns.h"
 
-const double EPSILON = 0.00000001111111111111;
-#define DBL_EQ(a,b) (((a) <= (b) + EPSILON) && ((a) >= (b) - EPSILON))
-
-// background frequency
-const double BACKGROUND = 0.25;
-const double ADJUSTMENT = 0.00001;
-
-using Matrix = std::map<char, std::vector<double>>;
-
-// Structure representing an intron
-struct Intron {
-    // 5' sequence
-    std::string five_prime;
-    // 3' sequence
-    std::string three_prime;
-    // full intron *not counting upstream and downstream exon nt*
-    std::string full_sequence;
-    // start and end point (inclusive; no exonic nts)
-    std::size_t start, end;
-    // transcript and gene ID
-    std::string transcript_id, gene_id;
-    // raw score and normalized score
-    double score, score_normalized;
-};
 
 // 3' PWM
-static Matrix pwm_lod_3p;
+static introns::Matrix pwm_lod_3p;
 
 // 5' PWM
-static Matrix pwm_lod_5p;
+static introns::Matrix pwm_lod_5p;
 
 // B' PWM
-static Matrix pwm_lod_Bp;
-
-static void print_matrix(const Matrix& m) {
-    for (auto& [key, val] : m) {
-        std::cout << key;
-        for (auto d : val) {
-            std::cout << '\t' << d;
-        }
-        std::cout << '\n';
-    }
-}
-
-static inline double log_odds(double f) {
-    if (DBL_EQ(f, 0.0)) return 0.0;
-    return log2(f / BACKGROUND + ADJUSTMENT); // adjustment so that no log2(0)
-}
-
-static inline double normalize(double d, double min, double max) {
-    if (DBL_EQ(d, 0.0)) {
-        d = 50.0;
-    } else if (d > 0.0) {
-        // greater than or equal to 0 gets rescaled
-        // to fit within 50-100
-        // divide the value by the max and then multiply by 50, then
-        // add 50 so that max is 100
-        d = (((d * 100.0) / (max * 100.0)) * 50.0) + 50.0;
-    } else {
-        // negative values go from 0-50
-        // take the value, divide by the min, then multiply by 50
-        // subtract from 50 to get the opposite (we want the biggest value
-        // to be at 0, because this is negative numbers)
-        d = 50.0 - (((d * 100.0) / (min * 100.0)) * 50.0);
-    }
-
-    return d;
-}
-
-static void score_and_normalize_introns(std::vector<Intron>& introns) {
-    for (auto& intron : introns) {
-        double sum = 0.0;
-        for (std::size_t i = 0; i < intron.five_prime.size(); i++) {
-            sum += pwm_lod_5p[intron.five_prime[i]][i];
-        }
-        for (std::size_t i = 0; i < intron.three_prime.size(); i++) {
-            sum += pwm_lod_3p[intron.three_prime[i]][i];
-        }
-        intron.score = sum;
-    }
-
-    double min = std::numeric_limits<double>::max(),
-           max = std::numeric_limits<double>::lowest();
-    for (auto& i : introns) {
-        if (i.score > max) max = i.score;
-        if (i.score < min) min = i.score;
-    }
-
-    for (auto& i : introns) {
-        i.score_normalized = normalize(i.score, min, max);
-    }
-}
+static introns::Matrix pwm_lod_Bp;
 
 // parse a pwm file and return the pwm
 // this also applies the `score' function to the values to make a lod
-static Matrix parse_pwm(const std::string&);
+static introns::Matrix parse_pwm(const std::string&);
 
 // parser-only operation
 static int get_introns(const std::string& gtffile,
         const std::string& fastafile,
-        std::vector<Intron>& outputintrons);
+        std::vector<introns::Intron>& outputintrons);
+
+// scores and normalizes introns
+static void score_and_normalize_introns(std::vector<introns::Intron>& introns);
 
 static void usage(char* executable) {
     std::fprintf(stderr,
@@ -182,7 +102,7 @@ int main(int argc, char** argv) {
 
     // do parser-only operation
     if (parseronly) {
-        std::vector<Intron> introns;
+        std::vector<introns::Intron> introns;
         std::ofstream outfile(outputfilename);
         if (!outfile) {
             std::cerr << "Error opening output file for writing: " << outputfilename << '\n';
@@ -210,7 +130,7 @@ int main(int argc, char** argv) {
     pwm_lod_Bp = parse_pwm(pwmfilename_Bp);
     std::cout << "-> Loaded PWMs\n";
     
-    std::vector<Intron> introns;
+    std::vector<introns::Intron> introns;
     // get the introns
     int ret = get_introns(gtffilename, fastafilename, introns);
     if (ret != 0) return ret;
@@ -218,26 +138,14 @@ int main(int argc, char** argv) {
     score_and_normalize_introns(introns);
 
     std::cout << "-> Scored introns\n";
-
-#if 1 // display first N introns
-    for (std::size_t i = 0; i < 10; i++) {
-        std::cout << introns[i].five_prime << " ... " << introns[i].three_prime << '\n';
-    }
-#endif
-
-#if 1 // display first N introns' scores
-    for (std::size_t i = 0; i < 10; i++) {
-        std::printf("Score: %.2f\tNormalized: %.2f\n", introns[i].score, introns[i].score_normalized);
-    }
-#endif
-
+    
     return 0;
 }
 
 // get introns
 static int get_introns(const std::string& gtffile,
         const std::string& fastafile,
-        std::vector<Intron>& outputintrons) {
+        std::vector<introns::Intron>& outputintrons) {
 
     // open the GTF file
     GTFFile gtf;
@@ -302,19 +210,8 @@ static int get_introns(const std::string& gtffile,
                         transcript_id, // transcript id
                         exons[i].attributes["gene_id"], // gene id
                     });
-#if 0
-                if (i < 10)
-                    std::cout << exons[i].end - 2 << '-' << exons[i].end + 10
-                        << " ... " <<
-                        exons[i+1].start - 14 << '-' << exons[i+1].start + 2 << '\n';
-#endif
             } catch(const std::runtime_error& e) {
                 std::cerr << "Error: " << e.what() << '\n';
-#if 0
-                std::cout << "i = " << i << '\n';
-                std::cout << "start = " << exons[i].end - 2 << '\n'
-                    << "end = " << exons[i+1].start + 2 << '\n';
-#endif
                 return 1;
             }
         }
@@ -326,10 +223,35 @@ static int get_introns(const std::string& gtffile,
     return 0;
 }
 
+// scores and normalizes introns
+static void score_and_normalize_introns(std::vector<introns::Intron>& introns) {
+    for (auto& intron : introns) {
+        double sum = 0.0;
+        for (std::size_t i = 0; i < intron.five_prime.size(); i++) {
+            sum += pwm_lod_5p[intron.five_prime[i]][i];
+        }
+        for (std::size_t i = 0; i < intron.three_prime.size(); i++) {
+            sum += pwm_lod_3p[intron.three_prime[i]][i];
+        }
+        intron.score = sum;
+    }
+
+    double min = std::numeric_limits<double>::max(),
+           max = std::numeric_limits<double>::lowest();
+    for (auto& i : introns) {
+        if (i.score > max) max = i.score;
+        if (i.score < min) min = i.score;
+    }
+
+    for (auto& i : introns) {
+        i.score_normalized = introns::normalize(i.score, min, max);
+    }
+}
+
 // parse a pwm from a file
 // this also applies the `score' function to the values to make a lod
-static Matrix parse_pwm(const std::string& pwmfilename) {
-    Matrix _pwm{
+static introns::Matrix parse_pwm(const std::string& pwmfilename) {
+    introns::Matrix _pwm{
         {'G', {}},
         {'T', {}},
         {'A', {}},
@@ -362,7 +284,7 @@ static Matrix parse_pwm(const std::string& pwmfilename) {
             	} else if (count == 4) {
             		nt = 'T';
             	}
-                _pwm[nt].push_back(log_odds(tmp));
+                _pwm[nt].push_back(introns::log_odds(tmp));
             }
         }
     }
