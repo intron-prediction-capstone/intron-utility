@@ -166,18 +166,18 @@ static int get_introns(const std::string& gtffile,
         return a.start < b.start;
     });
 
-    // split the exons into a map of transcript id -> exons
-    std::map<std::string, std::vector<GTFSequence>> exons_by_transcript;
+    // split the exons into a map of gene id -> exons
+    std::map<std::string, std::vector<GTFSequence>> exons_by_gene;
     for (auto& exon : tmpexons) {
         try {
-            exons_by_transcript.at(exon.attributes["transcript_id"]).push_back(exon);
+            exons_by_gene.at(exon.attributes["gene_id"]).push_back(exon);
         } catch(const std::out_of_range& oor) {
-            exons_by_transcript.insert({exon.attributes["transcript_id"], std::vector<GTFSequence>(1, exon)});
+            exons_by_gene.insert({exon.attributes["gene_id"], std::vector<GTFSequence>(1, exon)});
         }
     }
 
     // clean up memory as needed
-    for (auto& [key, val] : exons_by_transcript) {
+    for (auto& [key, val] : exons_by_gene) {
         val.shrink_to_fit();
     }
 
@@ -191,7 +191,7 @@ static int get_introns(const std::string& gtffile,
 
     outputintrons.clear();
     std::string tmpstr;
-    for (auto& [transcript_id, exons] : exons_by_transcript) {
+    for (auto& [gene_id, exons] : exons_by_gene) {
         for (std::size_t i = 0; i < exons.size() - 1; i++) {
             // cut out overlapped exons
             if (exons[i].end > exons[i+1].start) continue;
@@ -207,8 +207,8 @@ static int get_introns(const std::string& gtffile,
                         tmpstr.substr(tmpstr.size() - 18), // 3'
                         tmpstr.substr(3, tmpstr.size() - 7), // whole intron
                         exons[i].end+1, exons[i+1].start-1, // start and end
-                        transcript_id, // transcript id
-                        exons[i].attributes["gene_id"], // gene id
+                        exons[i].attributes["transcript_id"], // gene id
+                        gene_id,
                     });
             } catch(const std::runtime_error& e) {
                 std::cerr << "Error: " << e.what() << '\n';
