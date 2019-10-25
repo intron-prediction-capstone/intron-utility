@@ -8,6 +8,8 @@
 #include <limits>
 #include <cstdio>
 #include <cstring>
+#include <utility>
+#include <algorithm>
 #include "lib/gtf-cpp/gtf.h"
 #include "lib/pdqsort/pdqsort.h"
 #include "lib/fasta-cpp/fasta.h"
@@ -166,19 +168,31 @@ static int get_introns(const std::string& gtffile,
         return a.start < b.start;
     });
 
-    // split the exons into a map of gene id -> exons
-    std::map<std::string, std::vector<GTFSequence>> exons_by_gene;
+    // split the exons into a map:
+    /*
+     * {
+     *   gene_id: {
+     *     transcript_id: {
+     *       { exons, introns }
+     *     }
+     *   }
+     * }
+     */
+    std::map<std::string,
+        std::map<std::string,
+        std::pair<std::vector<GTFSequence>,
+        std::vector<introns::Intron>>>> exons_by_transcript_by_gene;
     for (auto& exon : tmpexons) {
-        try {
-            exons_by_gene.at(exon.attributes["gene_id"]).push_back(exon);
-        } catch(const std::out_of_range& oor) {
-            exons_by_gene.insert({exon.attributes["gene_id"], std::vector<GTFSequence>(1, exon)});
-        }
+        exons_by_transcript_by_gene
+            [exon.attributes["gene_id"]]
+            [exon.attributes["transcript_id"]].first.push_back(exon);
     }
 
     // clean up memory as needed
-    for (auto& [key, val] : exons_by_gene) {
-        val.shrink_to_fit();
+    for (auto& [gene_id, tmap] : exons_by_transcript_by_gene) {
+        for (auto& [tid, emap] : tmap) {
+            emap.first.shrink_to_fit();
+        }
     }
 
     std::cout << "-> Loaded " << tmpexons.size() << " exons\n";
@@ -191,31 +205,72 @@ static int get_introns(const std::string& gtffile,
 
     outputintrons.clear();
     std::string tmpstr;
-    for (auto& [gene_id, exons] : exons_by_gene) {
-        for (std::size_t i = 0; i < exons.size() - 1; i++) {
-            // cut out overlapped exons
-            if (exons[i].end > exons[i+1].start) continue;
-            try {
-                // 3nt from upstream
-                // 4nt from downstream
-                tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i+1].start + 3, true);
+    for (auto& [gene_id, exons_by_transcript] : exons_by_transcript_by_gene) {
+        for (auto& [transcript_id, pair] : exons_by_transcript) {
+            auto& [exons, _introns] = pair;
+            for (std::size_t i = 0; i < exons.size() - 1; i++) {
+                // cut out overlapped exons
+                if (exons[i].end > exons[i+1].start) continue;
+                try {
+                    // 3nt from upstream
+                    // 4nt from downstream
+                    tmpstr = fasta.get_sequence(exons[i].end - 2, exons[i+1].start + 3, true);
 
-                // 5' is the first 14 chars, 3' is the last 18
-                // the full sequence is everything minus the first 3 and last 4
-                outputintrons.push_back({
-                        tmpstr.substr(0, 14), // 5'
-                        tmpstr.substr(tmpstr.size() - 18), // 3'
-                        tmpstr.substr(3, tmpstr.size() - 7), // whole intron
-                        exons[i].end+1, exons[i+1].start-1, // start and end
-                        exons[i].attributes["transcript_id"], // gene id
-                        gene_id,
-                    });
-            } catch(const std::runtime_error& e) {
-                std::cerr << "Error: " << e.what() << '\n';
-                return 1;
+                    // 5' is the first 14 chars, 3' is the last 18
+                    // the full sequence is everything minus the first 3 and last 4
+                    _introns.push_back({
+                            tmpstr.substr(0, 14), // 5'
+                            tmpstr.substr(tmpstr.size() - 18), // 3'
+                            tmpstr.substr(3, tmpstr.size() - 7), // whole intron
+                            exons[i].end+1, exons[i+1].start-1, // start and end
+                            exons[i].attributes[transcript_id], // gene id
+                            gene_id,
+                            });
+                } catch(const std::runtime_error& e) {
+                    std::cerr << "Error: " << e.what() << '\n';
+                    return 1;
+                }
             }
         }
     }
+
+    for (auto& [gene_id, exons_by_transcript] : exons_by_transcript_by_gene) {
+        for (auto& [transcript_id, pair] : exons_by_transcript) {
+            auto& [exons, _introns] = pair;
+            for (auto& intron : _introns) {
+                for (auto& [ts_id, pair2] : exons_by_transcript) {
+                    auto& [exons2, _introns2] = pair2;
+                    for (auto& other : _introns2) {
+                        if (&other == &intron) continue;
+                        if (!other.keep_in_output) continue;
+                        intron.keep_in_output =
+                            !((other.start >= intron.start && other.end < intron.end)
+                            ||(other.start > intron.start && other.end <= intron.end));
+                        if ((other.start == intron.start) || (other.end == intron.end)) {
+                            if (std::find(other.all_transcripts.begin(),
+                                        other.all_transcripts.end(),
+                                        transcript_id)
+                                    == other.all_transcripts.end()) {
+                                other.all_transcripts.push_back(transcript_id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (auto& [gene_id, exons_by_transcript] : exons_by_transcript_by_gene) {
+        for (auto& [transcript_id, pair] : exons_by_transcript) {
+            auto& [exons, _introns] = pair;
+            for (auto& intron : _introns) {
+                if (intron.keep_in_output) {
+                    outputintrons.push_back(intron);
+                }
+            }
+        }
+    }
+            
     outputintrons.shrink_to_fit();
 
     std::cout << "-> Loaded " << outputintrons.size() << " introns\n";
