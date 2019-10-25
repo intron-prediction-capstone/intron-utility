@@ -30,11 +30,11 @@ namespace introns {
         std::size_t start, end;
         // transcript and gene ID
         std::string transcript_id, gene_id;
-        // raw score and normalized score
-        double score, score_normalized;
         // after processing, this will be used to store all transcripts in which
         // this intron can be found
         std::vector<std::string> all_transcripts;
+        // raw score and normalized score
+        double score, score_normalized;
         // whether or not we want to keep this in output
         bool keep_in_output = true;
     };

@@ -225,6 +225,7 @@ static int get_introns(const std::string& gtffile,
                             exons[i].end+1, exons[i+1].start-1, // start and end
                             exons[i].attributes[transcript_id], // gene id
                             gene_id,
+                            { transcript_id }, // set the list of tids
                             });
                 } catch(const std::runtime_error& e) {
                     std::cerr << "Error: " << e.what() << '\n';
@@ -244,8 +245,11 @@ static int get_introns(const std::string& gtffile,
                         if (&other == &intron) continue;
                         if (!other.keep_in_output) continue;
                         intron.keep_in_output =
-                            !((other.start >= intron.start && other.end < intron.end)
-                            ||(other.start > intron.start && other.end <= intron.end));
+                            !(
+                            (other.start >= intron.start && other.end < intron.end)
+                            ||(other.start > intron.start && other.end <= intron.end)
+                            ||(other.start == intron.start && other.end == intron.end)
+                            );
                         if ((other.start == intron.start) || (other.end == intron.end)) {
                             if (std::find(other.all_transcripts.begin(),
                                         other.all_transcripts.end(),
