@@ -178,10 +178,11 @@ static int get_introns(const std::string& gtffile,
      *   }
      * }
      */
-    std::map<std::string,
-        std::map<std::string,
-        std::pair<std::vector<GTFSequence>,
-        std::vector<introns::Intron>>>> exons_by_transcript_by_gene;
+    std::map<std::string, // gene_id
+        std::map<std::string, // transcript_id
+        std::pair<std::vector<GTFSequence>, // exons
+        std::vector<introns::Intron>>>> // introns
+            exons_by_transcript_by_gene;
     for (auto& exon : tmpexons) {
         exons_by_transcript_by_gene
             [exon.attributes["gene_id"]]
