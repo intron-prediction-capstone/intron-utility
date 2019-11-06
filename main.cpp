@@ -153,15 +153,15 @@ static int get_introns(const std::string& gtffile,
     GTFFile gtf;
     gtf.setfilename(gtffile);
     try {
-        gtf.load();
+        gtf.load_filter([](const auto& seq) {
+            return seq.feature == "exon";
+        });
     } catch (const GTFError& e) {
         std::cerr << e.what() << '\n';
         return 1;
     }
 
-    std::vector<GTFSequence> tmpexons = gtf.filter([](const auto& seq) {
-        return seq.feature == "exon";
-    });
+    std::vector<GTFSequence>& tmpexons = gtf.getall();
 
     // sort exons by start
     pdqsort(tmpexons.begin(), tmpexons.end(), [](GTFSequence& a, GTFSequence& b) {
