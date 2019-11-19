@@ -91,7 +91,7 @@ fi
 for input in ${INPUTS[@]}; do
     printf "\e[32;1mCC\t$input\t$input.o\e[m\n"
     
-    if [[ "$input" == *".cpp" ]]; then
+    if [[ "$input" != *".c" ]]; then
         $CXX $IFLAGS $CXXARGS "$input" -c -o "$OBJDIR/$input.o"
     else
         $CC $IFLAGS $CCARGS "$input" -c -o "$OBJDIR/$input.o"
