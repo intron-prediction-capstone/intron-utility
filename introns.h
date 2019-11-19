@@ -27,6 +27,8 @@ namespace introns {
         { 't', 'g' },
         { 'G', 'T' },
         { 'g', 't' },
+        { 'H', 'H' },
+        { 'h', 'h' },
     };
 
     // Structure representing an intron
