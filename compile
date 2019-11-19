@@ -89,11 +89,11 @@ if [[ ! -d "$OBJDIR" ]]; then
 fi
 
 for input in ${INPUTS[@]}; do
-    printf "\e[32;1mCC\t$input\t$input.o\e[m\n"
-    
     if [[ "$input" != *".c" ]]; then
+        printf "\e[32;1mCXX\t$input\t$input.o\e[m\n"
         $CXX $IFLAGS $CXXARGS "$input" -c -o "$OBJDIR/$input.o"
     else
+        printf "\e[32;1mCC\t$input\t$input.o\e[m\n"
         $CC $IFLAGS $CCARGS "$input" -c -o "$OBJDIR/$input.o"
     fi
 
