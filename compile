@@ -1,0 +1,129 @@
+#! /bin/bash
+
+# you can change config options here, OR
+# you can create a file called `compileconfig' and set them there
+if [[ ! -f "./compileconfig" ]]; then
+    # set CC or CXX if necessary
+    #CC=
+    #CXX=
+
+    # set various options
+    # else they can be env vars and commented out here
+    CCARGS=""
+    CXXARGS="-std=c++17 -O3"
+    OUTPUT="a.out"
+    INPUTS=(main.cpp)
+
+    # optional flags:
+    # object file directory (build directory)
+    OBJDIR=
+    # binary output directory
+    BINDIR=
+    # list of include dirs
+    INCDIRS=()
+else
+    source "./compileconfig"
+fi
+
+
+###########################################
+# /!\ DO NOT CHANGE BEYOND THIS POINT /!\ #
+###########################################
+
+# {{{
+OBJDIR=${OBJDIR:-.}
+BINDIR=${BINDIR:-.}
+OBJS=
+for o in ${INPUTS[@]}; do
+    OBJS="$OBJS $OBJDIR/$o.o"
+done
+
+if (( $# >= 1 )); then
+    if [[ "$1" == "clean" ]]; then
+        for i in ${INPUTS[@]}; do
+            rm "$OBJDIR/$i.o" &> /dev/null
+            if [[ $? == 0 ]]; then
+                printf "\e[32;1mRM\t$OBJDIR/$i.o\e[m\n"
+            fi
+        done
+        rm "$BINDIR/$OUTPUT" &> /dev/null
+        if [[ $? == 0 ]]; then
+            printf "\e[32;1mRM\t$BINDIR/$OUTPUT\e[m\n"
+        fi
+        exit 0
+    fi
+fi
+
+IFLAGS=
+while IFS=':' read -ra DIRS; do
+    for d in "${DIRS[@]}"; do
+        # trim the string
+        [[ "$d" =~ [^[:space:]](.*[^[:space:]])? ]]
+        if [[ "$BASH_REMATCH" != "" ]]; then
+            IFLAGS="$IFLAGS -I'$BASH_REMATCH'"
+        fi
+    done
+done <<< "$INCDIRS"
+
+if [[ $CC == "" ]]; then
+    if [[ "$(command -v clang)" != "" ]]; then
+        CC=clang
+    elif [[ "$(command -v gcc)" != "" ]]; then
+        CC=gcc
+    else
+        >&2 printf "\e[31;1mError: no CC detected; please set \$CC manually.\e[m\n"
+        exit 1
+    fi
+fi
+
+if [[ ! -d "$OBJDIR" ]]; then
+    if [[ -f "$OBJDIR" ]]; then
+        >&2 printf "\e[31;1mError: '$OBJDIR' is not a directory\e[m\n"
+        exit 1
+    else
+        mkdir "$OBJDIR"
+        if [[ $? != 0 ]]; then
+            exit 1
+        fi
+    fi
+fi
+
+for input in ${INPUTS[@]}; do
+    printf "\e[32;1mCC\t$input\t$input.o\e[m\n"
+    
+    if [[ "$input" == *".cpp" ]]; then
+        $CXX $IFLAGS $CXXARGS "$input" -c -o "$OBJDIR/$input.o"
+    else
+        $CC $IFLAGS $CCARGS "$input" -c -o "$OBJDIR/$input.o"
+    fi
+
+    if [[ $? != 0 ]]; then
+        >&2 printf "\e[31;1mError in $input\e[m\n"
+        exit 1
+    fi
+done
+
+if [[ ! -d "$BINDIR" ]]; then
+    if [[ -f "$BINDIR" ]]; then
+        >&2 printf "\e[31;1mError: '$BINDIR' is not a directory\e[m\n"
+        exit 1
+    else
+        mkdir "$BINDIR"
+        if [[ $? != 0 ]]; then
+            exit 1
+        fi
+    fi
+fi
+
+printf "\e[32;1mLD\t$OUTPUT\e[m\n"
+if [[ "${INPUTS[@]}" == *".cpp"* ]]; then
+    $CXX $OBJS -o "$BINDIR/$OUTPUT"
+else
+    $CC $OBJS -o "$BINDIR/$OUTPUT"
+fi
+if (( $? != 0 )); then
+    >&2 printf "\e[31;1mError linking $OUTPUT\e[m\n"
+fi
+
+# vim: set foldmethod=marker foldlevelstart=99 :
+#}}}

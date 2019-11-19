@@ -18,6 +18,17 @@ const double ADJUSTMENT = 0.00001;
 namespace introns {
     using Matrix = std::map<char, std::vector<double>>;
 
+    std::map<char, char> complements{
+        { 'A', 'C' },
+        { 'a', 'c' },
+        { 'C', 'A' },
+        { 'c', 'a' },
+        { 'T', 'G' },
+        { 't', 'g' },
+        { 'G', 'T' },
+        { 'g', 't' },
+    };
+
     // Structure representing an intron
     struct Intron {
         // 5' sequence
@@ -75,6 +86,26 @@ namespace introns {
         }
 
         return d;
+    }
+
+    // reverses a string in-place, returning reference to it
+    inline std::string& reverse(std::string& s) {
+        for (std::size_t i = 0; i < s.size() / 2; i++) {
+            s[i] ^= s[s.size()-1-i];
+            s[s.size()-1-i] ^= s[i];
+            s[i] ^= s[s.size()-1-i];
+        }
+
+        return s; // reference to original
+    }
+
+    // complement string of amino acids in-place, returning reference to it
+    inline std::string& complement(std::string& s) {
+        for (char& c : s) {
+            c = complements[c];
+        }
+
+        return s;
     }
 };
 
