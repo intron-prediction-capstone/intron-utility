@@ -117,8 +117,8 @@ namespace introns {
             reverse(complement(i.five_prime)),
             reverse(complement(i.three_prime)),
             reverse(complement(i.full_sequence)),
-            i.end, // reverse start and end
             i.start,
+            i.end,
             i.transcript_id,
             i.gene_id,
             i.all_transcripts,

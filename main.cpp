@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstring>
 #include <utility>
+#include <cmath>
 #include <algorithm>
 #include "lib/gtf-cpp/gtf.h"
 #include "lib/pdqsort/pdqsort.h"
@@ -214,7 +215,7 @@ static int get_introns(const std::string& gtffile,
                             tmpstr.substr(tmpstr.size() - 18), // 3'
                             tmpstr.substr(3, tmpstr.size() - 7), // whole intron
                             exons[i].end+1, exons[i+1].start-1, // start and end
-                            exons[i].attributes[transcript_id], // gene id
+                            transcript_id,
                             gene_id,
                             { transcript_id }, // set the list of tids
                             .strand = exons[i].strand, // negative?
@@ -232,6 +233,9 @@ static int get_introns(const std::string& gtffile,
         }
     }
 
+    // keep a map of gene id to transcript id to duplicate counts
+    std::map<std::string, std::map<std::string, unsigned long long>> dupecounts;
+
     for (auto& [gene_id, exons_by_transcript] : exons_by_transcript_by_gene) {
         for (auto& [transcript_id, pair] : exons_by_transcript) {
             auto& [exons, _introns] = pair;
@@ -241,18 +245,24 @@ static int get_introns(const std::string& gtffile,
                     for (auto& other : _introns2) {
                         if (&other == &intron) continue;
                         if (!other.keep_in_output) continue;
-                        intron.keep_in_output =
-                            !(
-                            (other.start >= intron.start && other.end < intron.end)
-                            ||(other.start > intron.start && other.end <= intron.end)
-                            ||(other.start == intron.start && other.end == intron.end)
-                            );
-                        if ((other.start == intron.start) || (other.end == intron.end)) {
+                        if (std::abs((long long)intron.start - (long long)other.start) <= 20L && std::abs((long long)intron.end - (long long)other.end) <= 20L) {
+                            intron.keep_in_output = true;
+                            dupecounts[gene_id][ts_id]++;
                             if (std::find(other.all_transcripts.begin(),
                                         other.all_transcripts.end(),
                                         transcript_id)
                                     == other.all_transcripts.end()) {
                                 other.all_transcripts.push_back(transcript_id);
+                            }
+                        } else {
+                            // if they overlap still, we need to check if one is
+                            // really big and throw it out if it's huge
+                            if (intron.start < other.end && intron.end > other.start) {
+                                if (intron.full_sequence.size() > other.full_sequence.size()) {
+                                    intron.keep_in_output = false;
+                                } else if (other.full_sequence.size() > intron.full_sequence.size()) {
+                                    other.keep_in_output = false;
+                                }
                             }
                         }
                     }
@@ -394,11 +404,11 @@ static void output_introns_gtf(std::vector<introns::Intron>& introns) {
 
     std::cout << "-> Writing sequence annotations to " << mbstr << '\n';
 
-    std::size_t id = 1;
+    std::size_t id = 0;
     GTFSequence tmpseq;
     for (auto& intron : introns) {
         tmpseq = {
-            std::to_string(id),
+            std::to_string(id++),
             "intron-util",
             "intron_CNS",
             intron.start,
