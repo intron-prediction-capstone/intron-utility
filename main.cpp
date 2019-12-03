@@ -231,7 +231,7 @@ static int get_introns(const std::string& gtffile,
                             });
 
                     // if this is negative, reverse + complement the strands
-                    if (_introns.back().negative) {
+                    if (_introns.back().strand == '-') {
                         _introns.back() = !(_introns.back());
                     }
                 } catch(const std::runtime_error& e) {
