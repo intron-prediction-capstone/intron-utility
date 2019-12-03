@@ -227,7 +227,13 @@ static int get_introns(const std::string& gtffile,
                             exons[i].attributes[transcript_id], // gene id
                             gene_id,
                             { transcript_id }, // set the list of tids
+                            .strand = exons[i].strand, // negative?
                             });
+
+                    // if this is negative, reverse + complement the strands
+                    if (_introns.back().negative) {
+                        _introns.back() = !(_introns.back());
+                    }
                 } catch(const std::runtime_error& e) {
                     std::cerr << "Error: " << e.what() << '\n';
                     return 1;

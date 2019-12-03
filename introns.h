@@ -50,6 +50,8 @@ namespace introns {
         double score, score_normalized;
         // whether or not we want to keep this in output
         bool keep_in_output = true;
+        // + or - strand
+        char strand = false;
     };
 
     // prints a matrix
@@ -108,6 +110,24 @@ namespace introns {
         }
 
         return s;
+    }
+
+    Intron operator!(Intron& i) {
+        Intron r = {
+            reverse(complement(i.five_prime)),
+            reverse(complement(i.three_prime)),
+            reverse(complement(i.full_sequence)),
+            i.end, // reverse start and end
+            i.start,
+            i.transcript_id,
+            i.gene_id,
+            i.all_transcripts,
+            i.score,
+            i.score_normalized,
+            i.keep_in_output,
+            i.strand,
+        };
+        return r;
     }
 };
 
