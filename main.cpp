@@ -197,8 +197,10 @@ static int get_introns(const std::string& gtffile,
 
     outputintrons.clear();
     std::string tmpstr;
+    int tcount = 0;
     for (auto& [gene_id, exons_by_transcript] : exons_by_transcript_by_gene) {
         for (auto& [transcript_id, pair] : exons_by_transcript) {
+            if (tcount++ == 10) goto done;
             auto& [exons, _introns] = pair;
             for (std::size_t i = 0; i < exons.size() - 1; i++) {
                 // cut out overlapped exons
@@ -232,6 +234,8 @@ static int get_introns(const std::string& gtffile,
             }
         }
     }
+
+done:
 
     // keep a map of gene id to transcript id to duplicate counts
     std::map<std::string, std::map<std::string, unsigned long long>> dupecounts;
@@ -285,6 +289,25 @@ static int get_introns(const std::string& gtffile,
     outputintrons.shrink_to_fit();
 
     std::cout << "-> Loaded " << outputintrons.size() << " introns\n";
+    
+    std::time_t t = std::time(nullptr);
+    char mbstr[100];
+    std::strftime(mbstr, 100, "duplicatestats-%Y%m%d%H%M.csv", std::localtime(&t));
+
+    std::ofstream outfile(mbstr);
+    if (!outfile) {
+        std::cerr << "Error opening " << mbstr << " for writing!\n"
+            << "Continuing without duplicate stats output.\n";
+    } else {
+        outfile << "\"gene_id\",\"transcript_id\",\"duplicates\"\r\n";
+        for (auto& [gid, ts] : dupecounts) {
+            for (auto& [tid, dupes] : ts) {
+                outfile << '"' << gid << "\",\"" << tid << "\"," << dupes << "\r\n";
+            }
+        }
+        outfile.close();
+        std::cout << "-> Wrote duplicate stats to " << mbstr << '\n';
+    }
 
     return 0;
 }
@@ -363,7 +386,7 @@ static introns::Matrix parse_pwm(const std::string& pwmfilename) {
 static void output_introns_fasta(std::vector<introns::Intron>& introns) {
     std::time_t t = std::time(nullptr);
     char mbstr[100];
-    std::strftime(mbstr, 100, "introns-%Y%m%d.fa", std::localtime(&t));
+    std::strftime(mbstr, 100, "introns-%Y%m%d%H%M.fa", std::localtime(&t));
 
     std::ofstream outfile(mbstr);
     if (!outfile) {
@@ -394,7 +417,7 @@ static void output_introns_fasta(std::vector<introns::Intron>& introns) {
 static void output_introns_gtf(std::vector<introns::Intron>& introns) {
     std::time_t t = std::time(nullptr);
     char mbstr[100];
-    std::strftime(mbstr, 100, "introns-%Y%m%d.gtf", std::localtime(&t));
+    std::strftime(mbstr, 100, "introns-%Y%m%d%H%M.gtf", std::localtime(&t));
 
     GTFFile outfile(mbstr);
     if (!outfile.open_for_writing(false)) {
@@ -415,7 +438,7 @@ static void output_introns_gtf(std::vector<introns::Intron>& introns) {
             intron.end,
             (DBL_EQ(intron.score_normalized, 0.0) ? '.' : intron.score_normalized),
             intron.strand,
-            '.',
+            -1,
             {
                 { "gene_id", intron.gene_id },
                 { "transcript_id", intron.transcript_id },
