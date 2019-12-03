@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <map>
 #include <limits>
+#include <ctime>
 #include <cstdio>
 #include <cstring>
 #include <utility>
@@ -37,13 +38,15 @@ static int get_introns(const std::string& gtffile,
 // scores and normalizes introns
 static void score_and_normalize_introns(std::vector<introns::Intron>& introns);
 
+static void output_introns_fasta(std::vector<introns::Intron>& introns);
+static void output_introns_gtf(std::vector<introns::Intron>& introns);
+
 static void usage(char* executable) {
     std::fprintf(stderr,
             "Usage:\n"
-            "\t1: %s --parse [gtf] [fasta] [output]\n"
+            "\t1: %s --parse [gtf] [fasta]\n"
             "\t2: %s [3' pwm] [5' pwm] [B' pwm] [gtf] [fasta]\n"
-            "\n\t\t1: Parse a FASTA file with a GTF file and print out any introns"
-            "\n\t\t   found into the [output] file."
+            "\n\t\t1: Parse a FASTA file with a GTF file.\n"
             "\n\t\t2: Take a 3' PWM, 5' PWM, and B' PWM and predict U12 introns from"
             "\n\t\t   the given GTF and FASTA files.\n",
             executable, executable);
@@ -84,14 +87,10 @@ int main(int argc, char** argv) {
             pwmfilename_Bp = argv[3];
         }
     }
-    if (argc > 4) {
-        if (parseronly) {
-            outputfilename = argv[4];
-        } else {
+    if (!parseronly) {
+        if (argc > 4) {
             gtffilename = argv[4];
         }
-    }
-    if (!parseronly) {
         if (argc > 5) {
             fastafilename = argv[5];
         }
@@ -105,23 +104,11 @@ int main(int argc, char** argv) {
     // do parser-only operation
     if (parseronly) {
         std::vector<introns::Intron> introns;
-        std::ofstream outfile(outputfilename);
-        if (!outfile) {
-            std::cerr << "Error opening output file for writing: " << outputfilename << '\n';
-            return 1;
-        }
 
         int ret = get_introns(gtffilename, fastafilename, introns);
         if (ret == 0) {
-            std::cout << "-> Writing introns to file...";
-            std::size_t intronswritten = 0;
-            const char* logfmt = "\r-> Writing introns to file: [%lu/%lu]";
-            for (auto& intron : introns) {
-                outfile << intron.full_sequence << '\n';
-                intronswritten++;
-                std::printf(logfmt, intronswritten, introns.size());
-            }
-            std::cout << "\n-> Wrote introns to file\n";
+            output_introns_fasta(introns);
+            output_introns_gtf(introns);
         }
 
         return 0;
@@ -140,6 +127,9 @@ int main(int argc, char** argv) {
     score_and_normalize_introns(introns);
 
     std::cout << "-> Scored introns\n";
+
+    output_introns_fasta(introns);
+    output_introns_gtf(introns);
     
     return 0;
 }
@@ -358,4 +348,71 @@ static introns::Matrix parse_pwm(const std::string& pwmfilename) {
     pwmfile.close();
 
     return _pwm;
+}
+
+static void output_introns_fasta(std::vector<introns::Intron>& introns) {
+    std::time_t t = std::time(nullptr);
+    char mbstr[100];
+    std::strftime(mbstr, 100, "introns-%Y%m%d.fa", std::localtime(&t));
+
+    std::ofstream outfile(mbstr);
+    if (!outfile) {
+        throw std::runtime_error("Error opening file for writing: " + std::string(mbstr));
+        return;
+    }
+
+    std::cout << "-> Writing sequences to " << mbstr << '\n';
+
+    for (auto& intron : introns) {
+        outfile << '>' << intron.gene_id
+            << ',' << intron.transcript_id
+            << ',' << intron.start
+            << '-' << intron.end << "\r\n";
+        // print the intron 60 characters at a time
+        std::size_t start = 0;
+        std::string tmp = "";
+        while (start < intron.full_sequence.size()) {
+            tmp = intron.full_sequence.substr(start, 60);
+            outfile << tmp << "\r\n";
+            start += 60;
+        }
+    }
+
+    outfile.close();
+}
+
+static void output_introns_gtf(std::vector<introns::Intron>& introns) {
+    std::time_t t = std::time(nullptr);
+    char mbstr[100];
+    std::strftime(mbstr, 100, "introns-%Y%m%d.gtf", std::localtime(&t));
+
+    GTFFile outfile(mbstr);
+    if (!outfile.open_for_writing(false)) {
+        throw std::runtime_error("Error opening file for writing: " + std::string(mbstr));
+        return;
+    }
+
+    std::cout << "-> Writing sequence annotations to " << mbstr << '\n';
+
+    std::size_t id = 1;
+    GTFSequence tmpseq;
+    for (auto& intron : introns) {
+        tmpseq = {
+            std::to_string(id),
+            "intron-util",
+            "intron_CNS",
+            intron.start,
+            intron.end,
+            (DBL_EQ(intron.score_normalized, 0.0) ? '.' : intron.score_normalized),
+            intron.strand,
+            '.',
+            {
+                { "gene_id", intron.gene_id },
+                { "transcript_id", intron.transcript_id },
+            },
+        };
+        outfile << tmpseq;
+    }
+
+    outfile.close();
 }

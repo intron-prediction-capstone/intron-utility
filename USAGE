@@ -25,15 +25,13 @@ file given a GTF file. This is simpler, but any further computations on the
 introns themselves are the responsibility of the user. This will output the
 given introns into a file, which will be overwritten should it not exist.
 
-  <executablename> [gtf] [fasta] [output]
+  <executablename> [gtf] [fasta]
 
     - [gtf]    is the GTF file to be used to locate introns
     - [fasta]  is the FASTA file to search for introns
-    - [output] is the file to which the introns should be written, one per line
 
-This program will create or overwrite the file specified as [output], putting
-one intron on each line. Thus, the number of introns found = the number of lines
-in the file.
+Like the prediction function, this will output the introns' sequences to a
+fasta file and their annotation data to a GTF file.
 
 *Note that this program will not remove U2 type introns. All introns will remain
 in the output.
