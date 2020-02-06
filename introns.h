@@ -19,14 +19,14 @@ namespace introns {
     using Matrix = std::map<char, std::vector<double>>;
 
     std::map<char, char> complements{
-        { 'A', 'C' },
-        { 'a', 'c' },
-        { 'C', 'A' },
-        { 'c', 'a' },
-        { 'T', 'G' },
-        { 't', 'g' },
-        { 'G', 'T' },
-        { 'g', 't' },
+        { 'A', 'T' },
+        { 'a', 't' },
+        { 'C', 'G' },
+        { 'c', 'g' },
+        { 'T', 'A' },
+        { 't', 'a' },
+        { 'G', 'C' },
+        { 'g', 'c' },
         { 'H', 'H' },
         { 'h', 'h' },
     };

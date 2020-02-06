@@ -201,6 +201,7 @@ static int get_introns(const std::string& gtffile,
     for (auto& [gene_id, exons_by_transcript] : exons_by_transcript_by_gene) {
         for (auto& [transcript_id, pair] : exons_by_transcript) {
             if (tcount++ == 10) goto done;
+            std::cerr << "gene_id: " << gene_id << "; transcript " << transcript_id << '\n';
             auto& [exons, _introns] = pair;
             for (std::size_t i = 0; i < exons.size() - 1; i++) {
                 // cut out overlapped exons
