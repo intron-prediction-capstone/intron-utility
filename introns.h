@@ -33,10 +33,13 @@ namespace introns {
 
     // Structure representing an intron
     struct Intron {
+        std::string sequence;
         // 5' sequence
         std::string five_prime;
         // 3' sequence
         std::string three_prime;
+        // B' sequence
+        std::string branch_point;
         // full intron *not counting upstream and downstream exon nt*
         std::string full_sequence;
         // start and end point (inclusive; no exonic nts)
@@ -114,8 +117,10 @@ namespace introns {
 
     Intron operator!(Intron& i) {
         Intron r = {
+            i.sequence,
             reverse(complement(i.five_prime)),
             reverse(complement(i.three_prime)),
+            reverse(complement(i.branch_point)),
             reverse(complement(i.full_sequence)),
             i.start,
             i.end,

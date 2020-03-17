@@ -214,8 +214,10 @@ static int get_introns(const std::string& gtffile,
                     // 5' is the first 14 chars, 3' is the last 18
                     // the full sequence is everything minus the first 3 and last 4
                     _introns.push_back({
+                            exons[i].seqname, // sequence
                             tmpstr.substr(0, 14), // 5'
                             tmpstr.substr(tmpstr.size() - 18), // 3'
+                            "", // B'
                             tmpstr.substr(3, tmpstr.size() - 7), // whole intron
                             exons[i].end+1, exons[i+1].start-1, // start and end
                             transcript_id,
