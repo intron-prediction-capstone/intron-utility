@@ -55,6 +55,10 @@ namespace introns {
         bool keep_in_output = true;
         // + or - strand
         char strand = false;
+        // branch point start index
+        std::size_t bp_index;
+        bool valid;
+        double fivescore, threescore, bpscore;
     };
 
     // prints a matrix

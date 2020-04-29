@@ -5,10 +5,10 @@
 #include <map>
 #include <vector>
 #include <sstream>
-#include <future>
 #include <cstdio>
 #include <cctype>
 #include <stdexcept>
+#include <utility>
 #include "lib/gtf-cpp/gtf.h"
 
 // lines in the list files which tell us things about each intron we parse
@@ -30,6 +30,32 @@ static introns::Matrix pwm_lod_5p;
 
 // B' PWM
 static introns::Matrix pwm_lod_Bp;
+
+static double score_bp(const std::string& bp) {
+    double s = 0.0;
+    for (std::size_t i = 0; i < 12; i++) {
+        if (bp[i] == 'A' || bp[i] == 'C'
+                || bp[i] == 'T' || bp[i] == 'G') {
+            s += pwm_lod_Bp[bp[i]][i];
+        }
+    }
+    return s;
+}
+
+// returns a pair of {index, score} for the branch point
+static std::pair<std::size_t, double> find_bp(const std::string& intron) {
+    std::size_t maxoff = 0;
+    double maxscore = 0.0;
+    double s;
+    for (std::size_t i = 40; i >= 1; i--) {
+        s = score_bp(intron.substr(intron.size()-14-i, 12));
+        if (s > maxscore) {
+            maxscore = s;
+            maxoff = intron.size()-14-i;
+        }
+    }
+    return std::make_pair(maxoff, maxscore);
+}
 
 // parse a pwm from a file
 // this also applies the `score' function to the values to make a lod
@@ -80,37 +106,52 @@ static introns::Matrix parse_pwm(const std::string& pwmfilename) {
 // scores introns
 static void score_and_normalize_introns(std::vector<introns::Intron>& introns) {
     for (auto& intron : introns) {
+        intron.valid = true;
+        if (intron.full_sequence.length() <= 54) {
+            intron.valid = false;
+            continue;
+        }
         double sum = 0.0;
         for (std::size_t i = 0; i < intron.five_prime.size(); i++) {
-            sum += pwm_lod_5p[intron.five_prime[i]][i];
+            double s = pwm_lod_5p[intron.five_prime[i]][i];
+            intron.fivescore = s;
+            sum += s;
         }
         for (std::size_t i = 0; i < intron.three_prime.size(); i++) {
-            sum += pwm_lod_3p[intron.three_prime[i]][i];
-        }
-        for (std::size_t i = 0; i < intron.branch_point.size(); i++) {
-            sum += pwm_lod_Bp[intron.branch_point[i]][i];
+            double s = pwm_lod_3p[intron.three_prime[i]][i];
+            intron.threescore = s;
+            sum += s;
         }
         intron.score = sum;
+
+        auto [bpi, bps] = find_bp(intron.full_sequence);
+        intron.bpscore = bps;
+        intron.score += bps;
+        intron.branch_point = intron.full_sequence.substr(bpi, 12);
+        intron.bp_index = bpi;
     }
 
     double min = std::numeric_limits<double>::max(),
            max = std::numeric_limits<double>::lowest();
     for (auto& i : introns) {
+        if (!i.valid) continue;
         if (i.score > max) max = i.score;
         if (i.score < min) min = i.score;
     }
 
     for (auto& i : introns) {
-        i.score_normalized = introns::normalize(i.score, min, max);
+        if (!i.valid) {
+            i.score_normalized = -1.0;
+        } else {
+            i.score_normalized = introns::normalize(i.score, min, max);
+        }
     }
 }
 
 // load and score introns; can be run in a separate thread
-// The args are opened input files for the list and parsed files, which
-// the thread will take ownership of.
 // If an error happens, it will print and then return an empty vector
-std::vector<introns::Intron> load_and_parse(std::ifstream&& inlist,
-        std::ifstream&& inparsed, bool isnegative) {
+std::vector<introns::Intron> load_and_parse(std::ifstream& inlist,
+        std::ifstream& inparsed, bool isnegative) {
     // for each line in the list, we should have one chunk in the parsed
     // file (FASTA)
     std::vector<listline> list;
@@ -176,6 +217,7 @@ std::vector<introns::Intron> load_and_parse(std::ifstream&& inlist,
                 { list[i].transcriptid },
             };
             tmpintron.strand = isnegative;
+            intr.push_back(tmpintron);
         } catch (std::out_of_range& e) {
             continue;
         }
@@ -233,25 +275,11 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::cout << "Spawning positive and negative intron workers...\n";
-    
-    auto posintrons = std::async(std::launch::async, load_and_parse,
-            std::move(inposlist), std::move(inposparsed), false);
-    auto negintrons = std::async(std::launch::async, load_and_parse,
-            std::move(inneglist), std::move(innegparsed), true);
+    auto posintrons = load_and_parse(inposlist, inposparsed, false);
+    auto negintrons = load_and_parse(inneglist, innegparsed, true);
 
-    std::cout << "Awaiting results...\n";
-
-    // wait for results
-    posintrons.wait();
-    negintrons.wait();
-
-
-    allintrons = posintrons.get();
-    posintrons.get().clear();
-    allintrons.insert(allintrons.end(), negintrons.get().begin(),
-            negintrons.get().end());
-    negintrons.get().clear();
+    allintrons = posintrons;
+    allintrons.insert(allintrons.end(), negintrons.begin(), negintrons.end());
 
     std::cout << "Got results; scoring...\n";
 
@@ -318,11 +346,15 @@ static void output_introns_gtf(std::vector<introns::Intron>& introns) {
             intron.start,
             intron.end,
             (DBL_EQ(intron.score_normalized, 0.0) ? '.' : intron.score_normalized),
-            intron.strand,
+            intron.strand ? '-' : '+',
             -1,
             {
                 { "gene_id", intron.gene_id },
                 { "transcript_id", intron.transcript_id },
+                { "five_score", std::to_string(intron.fivescore) },
+                { "three_score", std::to_string(intron.threescore) },
+                { "bp_score", std::to_string(intron.bpscore) },
+                { "bp", intron.branch_point },
             },
         };
         outfile << tmpseq;
